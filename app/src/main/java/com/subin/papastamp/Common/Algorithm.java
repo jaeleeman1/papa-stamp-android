@@ -1,4 +1,4 @@
-package com.subin.papastamp.Common;
+package com.subin.papastamp.common;
 
 /**
  Aes encryption

@@ -1,6 +1,4 @@
-package com.subin.papastamp.Common;
-
-import java.util.HashMap;
+package com.subin.papastamp.common;
 
 public class Constants {
 
