@@ -19,7 +19,7 @@ public class HttpInterceptor implements Interceptor {
 		Request originalRequest = chain.request();
 		Log.d(TAG, "HTTP original: " + originalRequest);
 		Request request = originalRequest.newBuilder()
-				.addHeader("uid", mAccessUid)
+				.addHeader("user_id", mAccessUid)
 				.build();
 
 		Response response = chain.proceed(request);

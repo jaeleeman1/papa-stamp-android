@@ -25,12 +25,20 @@ public interface RestApiService {
 			"Content-Type: application/json"
 	})
 
-	@GET("adminAuth")
+	@GET("user/v1.0/userCreate")
 	Call<HttpResponseFirebaseToken> getAdminAuthToken();
 
-	@PUT("updateLocation")
+	@PUT("map/v1.0/updateLocation")
 	Call<ResponseBody> updateLocation(@Body HttpRequestLocationInfo body);
 
+	@PUT("tablet/v1.0/insertStampHistory")
+	Call<ResponseBody> insertStampHistory(@Body HttpRequestStampInfo body);
+
+	@POST("shop/v1.0/update-stamp")
+	Call<ResponseBody> updateStamp(@Body HttpRequestStampInfo body);
+
+	@POST("user/v1.0/userLogin")
+	Call<HttpResponseLoginInfo> userLoginCheck(@Body HttpRequestLoginInfo body);
 
 
 

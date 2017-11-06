@@ -12,64 +12,73 @@ import javax.crypto.spec.SecretKeySpec;
 
 
 import android.util.Base64;
+import android.util.Log;
 
+import java.security.MessageDigest;
 
 public class Algorithm {
-	public String Decrypt(String text, String key) {
-		byte[] results = null;
-		try {
+	public static final String DEFAULT_CODING = "utf-8";
+	private static final String TAG = "[UserManager] ";
 
-			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+	public static String encrypt(String content, String key) throws Exception {
+		byte[] input = content.getBytes(DEFAULT_CODING);
 
-			byte[] keyBytes= new byte[16];
+		MessageDigest md = MessageDigest.getInstance("MD5");
+		byte[] thedigest = md.digest(key.getBytes(DEFAULT_CODING));
 
-			byte[] b= key.getBytes("UTF-8");
+		Log.d(TAG, "content: " + content);
+		Log.d(TAG, "key: " + key);
 
-			int len= b.length;
+		SecretKeySpec skc = new SecretKeySpec(thedigest, "AES");
 
-			if (len > keyBytes.length) len = keyBytes.length;
+		//String byteToStr = new String(thedigest, 0, thedigest.length);
 
-			System.arraycopy(b, 0, keyBytes, 0, len);
+		StringBuilder sb = new StringBuilder();
+		for(final byte b: thedigest)
+			sb.append(String.format("%02x ", b&0xff));
 
-			SecretKeySpec keySpec = new SecretKeySpec(keyBytes, "AES");
+		Log.d(TAG, "thedigest: " + sb.toString());
 
-			IvParameterSpec ivSpec = new IvParameterSpec(keyBytes);
+		Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+		cipher.init(Cipher.ENCRYPT_MODE, skc);
 
-			cipher.init(Cipher.DECRYPT_MODE,keySpec,ivSpec);
+		byte[] cipherText = new byte[cipher.getOutputSize(input.length)];
+		int ctLength = cipher.update(input, 0, input.length, cipherText, 0);
+		ctLength += cipher.doFinal(cipherText, ctLength);
 
-			results = cipher.doFinal(Base64.decode(text, 0));
-
-			return new String(results,"UTF-8");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return null;
+		return parseByte2HexStr(cipherText);
 	}
 
+	private static String decrypt(String encrypted, String seed) throws Exception {
+		byte[] keyb = seed.getBytes(DEFAULT_CODING);
+		MessageDigest md = MessageDigest.getInstance("MD5");
+		byte[] thedigest = md.digest(keyb);
+		SecretKeySpec skey = new SecretKeySpec(thedigest, "AES");
+		Cipher dcipher = Cipher.getInstance("AES");
+		dcipher.init(Cipher.DECRYPT_MODE, skey);
 
+		byte[] clearbyte = dcipher.doFinal(toByte(encrypted));
+		return new String(clearbyte);
+	}
 
-	public String Encrypt(String text, String key) {
-		byte[] results = null;
-		try {
-			Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-			byte[] keyBytes = new byte[16];
-			byte[] b = key.getBytes("UTF-8");
-
-			int len = b.length;
-			if (len > keyBytes.length) len = keyBytes.length;
-
-			System.arraycopy(b, 0, keyBytes, 0, len);
-
-			SecretKeySpec keySpec = new SecretKeySpec(keyBytes, "AES");
-
-			IvParameterSpec ivSpec = new IvParameterSpec(keyBytes);
-
-			cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec);
-			results = cipher.doFinal(text.getBytes("UTF-8"));
-		} catch (Exception e) {
-			e.printStackTrace();
+	private static byte[] toByte(String hexString) {
+		int len = hexString.length() / 2;
+		byte[] result = new byte[len];
+		for (int i = 0; i < len; i++) {
+			result[i] = Integer.valueOf(hexString.substring(2 * i, 2 * i + 2), 16).byteValue();
 		}
+		return result;
+	}
 
-		return Base64.encodeToString(results, Base64.NO_WRAP);
+	private static String parseByte2HexStr(byte buf[]) {
+		StringBuffer sb = new StringBuffer();
+		for (int i = 0; i < buf.length; i++) {
+			String hex = Integer.toHexString(buf[i] & 0xFF);
+			if (hex.length() == 1) {
+				hex = '0' + hex;
+			}
+			sb.append(hex);
+		}
+		return sb.toString();
 	}
 }

@@ -1,3 +1,4 @@
+/*
 package com.subin.papastamp.model;
 
 import android.content.Context;
@@ -50,7 +51,7 @@ public class AccountManager {
     }
 
     public String getAccessUid() {
-        UserInfo userInfo = UserInfo.getInstance();
+        UserMa userInfo = UserInfo.getInstance();
         userInfo.init(mContext);
         String accessUid = userInfo.getUid();
 
@@ -72,8 +73,11 @@ public class AccountManager {
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
 //                if (!mFirst) {
                 FirebaseUser user = firebaseAuth.getCurrentUser();
+                String accessToken = FirebaseInstanceId.getInstance().getToken();
                 if (user != null) {
                     Log.d(TAG, "onAuthStateChanged(Firebase):" + user.getUid());
+                    Log.d(TAG, "token :" + accessToken);
+
                     mUid = user.getUid();
                 } else {
                     Log.d(TAG, "onAuthStateChanged(initUserId)" + mUid);
@@ -85,8 +89,6 @@ public class AccountManager {
         };
     }
 
-
-
     public void startListeningForAuthentication() {
         mAuth.addAuthStateListener(mAuthListener);
     }
@@ -97,7 +99,8 @@ public class AccountManager {
         }
     }
 
-    /*private void sendAccountToServer(FirebaseUser user) {
+    */
+/*private void sendAccountToServer(FirebaseUser user) {
         mUid = user.getUid();
         mEmail = user.getEmail();
         Log.d(TAG, "Firebase uid: " + mUid + ", email: " + mEmail);
@@ -148,5 +151,6 @@ public class AccountManager {
                 }
             }
         });
-    }*/
-}
+    }*//*
+
+}*/

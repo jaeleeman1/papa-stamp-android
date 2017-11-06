@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 public class RecoMonitoringService extends Service implements RECOMonitoringListener, RECOServiceConnectListener{
+    static final String TAG = "RecoMonitoring";
     private long mScanDuration = 1*1000L;
     private long mSleepDuration = 10*1000L;
     private long mRegionExpirationTime = 60*1000L;
@@ -33,10 +34,24 @@ public class RecoMonitoringService extends Service implements RECOMonitoringList
     private RECOBeaconManager mRecoManager;
     private ArrayList<RECOBeaconRegion> mRegions;
 
+    private Context mContext;
+    private UserManager userManager;
+    private String mUid;
+
     @Override
     public void onCreate() {
         Log.i("BackMonitoringService", "onCreate()");
         super.onCreate();
+
+        mContext = this;
+
+        userManager = UserManager.getInstance();
+        if (userManager.getContext() == null) {
+            userManager.init(mContext);
+        }
+
+        mUid = userManager.getUid();
+        Log.d(TAG, "access uid : " + mUid);
     }
 
     @Override
@@ -154,8 +169,9 @@ public class RecoMonitoringService extends Service implements RECOMonitoringList
         Log.i("BackMonitoringService", "비콘 지역 들어옴 : " + region.getUniqueIdentifier());
         ArrayList<RECOBeacon> monitoringBeacons = new ArrayList<RECOBeacon>(beacons);
         for (RECOBeacon monitoringBeacon : monitoringBeacons) {
-//            Log.i("BackMonitoringService", String.valueOf(monitoringBeacon.getMajor()));
-            showMessage(this,"파파스탬프","쿠폰 적립을 쉽고 간편하게~!! : ", "Online Stamp Management", "Coffee JASS(우면)");
+            Log.i("BackMonitoringService", String.valueOf(monitoringBeacon.getMajor()));
+            Log.i("BackMonitoringService", String.valueOf(monitoringBeacon.getMinor()));
+            showMessage(this,"파파스탬프","쿠폰 적립을 쉽고 간편하게~!!", "Online Stamp Management", "SB-SHOP-00001");
         }
         //Write the code when the device is enter the region
     }
@@ -201,7 +217,7 @@ public class RecoMonitoringService extends Service implements RECOMonitoringList
         return;
     }
 
-    private void showMessage(Context context, String title, String msg, String ticker, String code) {
+    private void showMessage(Context context, String title, String msg, String ticker, String shopCode) {
         //비콘 신호 수신시 메시지 전송....
         NotificationManager mManager = (NotificationManager)context.getSystemService(NOTIFICATION_SERVICE);
         PendingIntent pendingIntent ;
@@ -209,8 +225,9 @@ public class RecoMonitoringService extends Service implements RECOMonitoringList
 
         Intent pushIntent =new Intent(getApplicationContext(), MainActivity.class);
         pushIntent.putExtra("pushCheck", "show");
+        pushIntent.putExtra("userId", mUid);
         pendingIntent = PendingIntent.getActivity(context, notifyID,
-                pushIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("code",code), PendingIntent.FLAG_UPDATE_CURRENT);
+                pushIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("shopCode",shopCode), PendingIntent.FLAG_UPDATE_CURRENT);
 
         NotificationCompat.Builder mBuilder;
 
@@ -221,7 +238,7 @@ public class RecoMonitoringService extends Service implements RECOMonitoringList
 
         mBuilder = new NotificationCompat.Builder(context)
                 .setSmallIcon(R.drawable.stamp_action) //작은 아이콘 이미지
-                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.stamp_icon))
+                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.papastamp_icon))
                 .setContentTitle("파파 스탬프")
                 .setContentText("결제 시 스탬프 요청 버튼 클릭!")
                 .setContentIntent(pendingIntent)

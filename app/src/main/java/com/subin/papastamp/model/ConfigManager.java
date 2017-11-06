@@ -7,14 +7,13 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 
 import junit.framework.Assert;
-import junit.framework.AssertionFailedError;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import static com.subin.papastamp.Common.Constants.CONFIG_KEY_API_URL;
-import static com.subin.papastamp.Common.Constants.CONFIG_KEY_AES_KEY;
+import static com.subin.papastamp.common.Constants.CONFIG_KEY_API_URL;
+import static com.subin.papastamp.common.Constants.CONFIG_KEY_AES_KEY;
 
 public class ConfigManager {
 	private static ConfigManager mInstance = null;

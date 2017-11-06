@@ -21,13 +21,14 @@ public class NotificationManager {
 		NOTIFICATION_TYPE_SSUP_REPLY(2),
 		NOTIFICATION_TYPE_CHAT_START(3);
 		private int value;
-		private NotificationType(int value) {
+		NotificationType(int value) {
 			this.value = value;
 		}
 		public int getValue() {
 			return this.value;
 		}
-	};
+	}
+
 	private static final String TAG = "SSUP_NotificationManage";
 
 	public NotificationManager() {}
@@ -50,15 +51,6 @@ public class NotificationManager {
 		mListener = listener;
 	}
 
-	public void deliverProximityNotification(String uid, Double latitude, Double longitude,
-											 Double distance, String nickname, String expression){
-		Log.d(TAG, "deliverProximityNotification() enter");
-
-		if (mListener != null) {
-			mListener.onProximityNotificationReceived(uid, latitude, longitude, distance, nickname,
-					expression);
-		}
-	}
 
 	public void deliverSsupNotification(String uid) {
 		Log.d(TAG, "SSUP notification received!");
