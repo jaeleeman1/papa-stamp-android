@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/intro_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#f0f0f0"
+    tools:context="com.subin.papastamp.IntroActivity">
+
+    <android.support.v4.view.ViewPager
+        android:id="@+id/intro_pager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <LinearLayout
+        android:id="@+id/indicator_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="77dp"
+        android:layout_centerHorizontal="true">
+        <ToggleButton
+            android:id="@+id/indi_0"
+            android:layout_width="11dp"
+            android:layout_height="11dp"
+            android:textOn=""
+            android:textOff=""
+            android:checked="true"
+            android:background="@drawable/toggle_indicator_intro"/>
+        <ToggleButton
+            android:id="@+id/indi_1"
+            android:layout_width="11dp"
+            android:layout_height="11dp"
+            android:layout_marginLeft="11dp"
+            android:textOn=""
+            android:textOff=""
+            android:background="@drawable/toggle_indicator_intro"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/skip_text"
+        android:layout_width="45dp"
+        android:layout_height="24dp"
+        android:text="건너뛰기"
+        android:gravity="center"
+        android:textSize="12sp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="21dp"
+        android:layout_marginBottom="12dp"
+        android:textColor="#de1e2639"/>
+
+</RelativeLayout>

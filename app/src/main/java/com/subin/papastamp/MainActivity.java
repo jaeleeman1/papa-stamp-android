@@ -11,28 +11,21 @@ import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.os.Vibrator;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.util.StringBuilderPrinter;
 import android.view.Gravity;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -46,37 +39,14 @@ import android.widget.ToggleButton;
 import android.view.WindowManager.LayoutParams;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.resource.drawable.GlideDrawable;
 import com.bumptech.glide.request.target.GlideDrawableImageViewTarget;
-import com.subin.papastamp.model.AccountManager;
 import com.subin.papastamp.model.RecoMonitoringService;
 import com.subin.papastamp.model.http.HttpClientManager;
+import com.subin.papastamp.model.http.HttpRequestStampInfo;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
-import java.net.URI;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.net.HttpURLConnection;
-import java.util.Map;
-import java.util.concurrent.RunnableFuture;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -131,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Boolean threadFlag = true;
 
-    private static final String PAPAURL = "https://whereareevent.com/main";
+    private static String PAPAURL = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -148,14 +118,20 @@ public class MainActivity extends AppCompatActivity {
         Intent pushIntent = getIntent();
         //Push Check
         String pushCheck = pushIntent.getExtras().getString("pushCheck");
+        //Shop Code
+        String shopCode = pushIntent.getExtras().getString("shopCode");
         //User ID
-        String userId = pushIntent.getExtras().getString("userId");
+        String mUid = pushIntent.getExtras().getString("userId");
 
         pushButton = (ToggleButton) findViewById(R.id.pushButton);
 
         Log.d(TAG, "pushCheck: " + pushCheck);
         if(pushCheck.equals("hide")) {
             pushButton.setVisibility(View.GONE);
+            PAPAURL = "https://whereareevent.com/map/v1.0/mapMain";
+        }else {
+            Log.d(TAG, "shopCode: " + shopCode);
+            PAPAURL = "https://whereareevent.com/shop/v1.0/shopInfo/"+shopCode;
         }
 
         pushButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -181,39 +157,12 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setDomStorageEnabled(true);
         webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
         webSettings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.SINGLE_COLUMN);
-        Map<String, String> extraHeaders = new HashMap<String, String>();
 
         try {
-            extraHeaders.put("uid",userId);
-            papastampWebView.loadUrl(PAPAURL, extraHeaders);
+            papastampWebView.loadUrl(PAPAURL+"/"+mUid);
         }catch (Exception e){
             Log.d("Error",e.getMessage());
         }
-
-        /*HttpClientManager httpClientManager = HttpClientManager.getInstance();
-        httpClientManager.initHeader();
-
-        Call<ResponseBody> call = httpClientManager.getMain();
-        call.enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(Call<okhttp3.ResponseBody> call, Response<ResponseBody> response) {
-                //Log.d(TAG, "REST API request OK");
-                Log.d(TAG, "Response: " + response);
-                Log.d(TAG, "Response header: " + response.headers());
-                Log.d(TAG, "call: " + call);
-
-                if (response.code() == 200) {
-                    Log.d(TAG, "REST API response OK");
-                } else {
-                    Log.d(TAG, "REST API response failed");
-                }
-            }
-
-            @Override
-            public void onFailure(Call<okhttp3.ResponseBody> call, Throwable t) {
-                Log.d(TAG, "REST API request failed");
-            }
-        });*/
 
         //사용자가 블루투스를 켜도록 요청합니다.
         mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
@@ -247,8 +196,79 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void showDialog()
-    {
+    private void insertStampHistory(String shopId) {
+        Log.i(TAG, "insertStampHistory");
+
+        HttpClientManager httpClientManager = HttpClientManager.getInstance();
+
+        httpClientManager.initHeader();
+        HttpRequestStampInfo body = new HttpRequestStampInfo(shopId);
+        Call<ResponseBody> call = httpClientManager.insertStampHistory(body);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                //Log.d(TAG, "REST API request OK");
+                Log.d(TAG, "Response: " + response);
+                Log.d(TAG, "Response header: " + response.headers());
+
+                if (response.code() == 200) {
+                    Log.d(TAG, "REST API response OK");
+                    if (response.body() != null) {
+                        try {
+                            //TODO: Use response.body().bytes() to handle thumbnail file image
+                            Log.d(TAG, "Response body: " + response.body().string());
+                        } catch (IOException e) {
+                        }
+                    } else {
+                        Log.d(TAG, "REST API response failed");
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.d(TAG, "REST API request failed");
+            }
+        });
+    }
+
+    private void updateStamp(String shopId) {
+        Log.i(TAG, "updateStamp");
+
+        HttpClientManager httpClientManager = HttpClientManager.getInstance();
+
+        httpClientManager.initHeader();
+        HttpRequestStampInfo body = new HttpRequestStampInfo(shopId);
+        Call<ResponseBody> call = httpClientManager.updateStamp(body);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                //Log.d(TAG, "REST API request OK");
+                Log.d(TAG, "Response: " + response);
+                Log.d(TAG, "Response header: " + response.headers());
+
+                if (response.code() == 200) {
+                    Log.d(TAG, "REST API response OK");
+                    if (response.body() != null) {
+                        try {
+                            //TODO: Use response.body().bytes() to handle thumbnail file image
+                            Log.d(TAG, "Response body: " + response.body().string());
+                        } catch (IOException e) {
+                        }
+                    } else {
+                        Log.d(TAG, "REST API response failed");
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.d(TAG, "REST API request failed");
+            }
+        });
+    }
+
+    private void showDialog() {
         Context mContext = getApplicationContext();
 
         LayoutInflater inflater
@@ -294,22 +314,6 @@ public class MainActivity extends AppCompatActivity {
     {
         requestStampDialog.dismiss();
     }
-
-    static class HttpAsyncTask extends AsyncTask<String, Void, Boolean> {
-        @Override
-        protected Boolean doInBackground(String... urls) {
-            try {
-                // HttpURLConnection.setFollowRedirects(false);
-                HttpURLConnection con = (HttpURLConnection) new URL(urls[0]).openConnection();
-                con.setInstanceFollowRedirects(false);
-                con.setRequestMethod("GET");
-                return (con.getResponseCode() == HttpURLConnection.HTTP_OK);
-            } catch (Exception e) {
-                return false;
-            }
-        }
-    }
-    //======================================================================
 
 /*    private Button.OnClickListener pushButtonListener = new View.OnClickListener() {
         @Override
@@ -429,7 +433,8 @@ public class MainActivity extends AppCompatActivity {
                                         try {
                                             Toast.makeText(MainActivity.this, "도장 찍기 완료", Toast.LENGTH_SHORT).show();
                                             vide.vibrate(700);
-                                            (new HttpAsyncTask()).execute("https://whereareevent.com/tablet/temppushStamp");
+                                            insertStampHistory("SB-SHOP-00001");
+                                            updateStamp("SB-SHOP-00001");
                                             pushButton.performClick();
                                             Thread.sleep(100);
                                         } catch (InterruptedException e) {
@@ -538,7 +543,6 @@ public class MainActivity extends AppCompatActivity {
     private void requestLocationPermission() {
         if(!ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION)) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_LOCATION);
-            return;
         }
 
 //        Snackbar.make(mLayout, R.string.location_permission_rationale, Snackbar.LENGTH_INDEFINITE)
@@ -561,28 +565,39 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-    private static String getStringFromInputStream(InputStream is) {
-        BufferedReader br = null;
-        StringBuilder sb = new StringBuilder();
-        String line;
+    @Override
+    public void onBackPressed() {
+        Log.d(TAG, "onBackPressed() enter");
+        moveTaskToBack(true);
+    }
 
-        try {
-            br = new BufferedReader(new InputStreamReader(is));
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (br != null) {
-                try {
-                    br.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+    /*private void sendLocationToServer(String uid, Double latitude, Double longitude) {
+        Log.i(TAG, "send Location to server");
+
+        HttpClientManager httpClientManager = HttpClientManager.getInstance();
+        httpClientManager.initHeader();
+        HttpRequestLocationInfo body = new HttpRequestLocationInfo(latitude, longitude);
+        Call<ResponseBody> call = httpClientManager.updateLocation(uid, body);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                //Log.d(TAG, "REST API request OK");
+                Log.d(TAG, "Response: " + response);
+                Log.d(TAG, "Response header: " + response.headers());
+                Log.d(TAG, "Response body: " + response.body());
+                Log.d(TAG, "call: " + call);
+
+                if (response.code() == 200) {
+                    Log.d(TAG, "REST API response OK");
+                } else {
+                    Log.d(TAG, "REST API response failed");
                 }
             }
-        }
 
-        return sb.toString();
-    }
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.d(TAG, "REST API request failed");
+            }
+        });
+    }*/
 }

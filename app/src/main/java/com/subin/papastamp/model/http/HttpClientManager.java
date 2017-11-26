@@ -2,20 +2,17 @@ package com.subin.papastamp.model.http;
 
 import android.util.Log;
 
-import com.subin.papastamp.model.AccountManager;
+import com.subin.papastamp.model.UserManager;
 import com.subin.papastamp.model.ConfigManager;
 
-import java.util.List;
-import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
-import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-import static com.subin.papastamp.Common.Constants.CONFIG_KEY_API_URL;
+import static com.subin.papastamp.common.Constants.CONFIG_KEY_API_URL;
 
 public class HttpClientManager {
 	private static String mBaseUrl = null;
@@ -39,7 +36,7 @@ public class HttpClientManager {
 	public void initHeader() {
 		Log.d(TAG, "initHeader() enter");
 
-		mAccessUid = AccountManager.getInstance().getAccessUid();
+		mAccessUid = UserManager.getInstance().getUid();
 		if (mAccessUid == null) {
 			Log.e(TAG, "Invalid Firebase ID");
 		}
@@ -74,7 +71,7 @@ public class HttpClientManager {
 		return service.getAdminAuthToken();
 	}
 
-	public Call<ResponseBody> updateLocation(String uid, HttpRequestLocationInfo body) {
+	public Call<ResponseBody> updateLocation(HttpRequestLocationInfo body) {
 		Log.d(TAG, "updateLocation() was called");
 
 		if (mAccessUid == null || mAccessUid.isEmpty()) {
@@ -91,6 +88,61 @@ public class HttpClientManager {
 
 		//return service.updateLocation(uid, Double.toString(latitude), Double.toString(longitude));
 		return service.updateLocation(body);
+	}
+
+	public Call<HttpResponseLoginInfo> userLoginCheck(HttpRequestLoginInfo body) {
+		Log.d(TAG, "userLoginCheck() was called");
+
+		if (mAccessUid == null || mAccessUid.isEmpty()) {
+			return null;
+		}
+
+		Retrofit retrofit = new Retrofit.Builder()
+				.baseUrl(mBaseUrl)
+				.client(mHttpClient)
+				.addConverterFactory(GsonConverterFactory.create())
+				.build();
+
+		RestApiService service = retrofit.create(RestApiService.class);
+
+		//return service.updateLocation(uid, Double.toString(latitude), Double.toString(longitude));
+		return service.userLoginCheck(body);
+	}
+
+	public Call<ResponseBody> insertStampHistory(HttpRequestStampInfo body) {
+		Log.d(TAG, "Papastamp getMapMain() was called");
+
+		if (mAccessUid == null || mAccessUid.isEmpty()) {
+			return null;
+		}
+
+		Retrofit retrofit = new Retrofit.Builder()
+				.baseUrl(mBaseUrl)
+				.addConverterFactory(GsonConverterFactory.create())
+				.client(mHttpClient)
+				.build();
+
+		RestApiService service = retrofit.create(RestApiService.class);
+
+		return service.insertStampHistory(body);
+	}
+
+	public Call<ResponseBody> updateStamp(HttpRequestStampInfo body) {
+		Log.d(TAG, "Papastamp getMapMain() was called");
+
+		if (mAccessUid == null || mAccessUid.isEmpty()) {
+			return null;
+		}
+
+		Retrofit retrofit = new Retrofit.Builder()
+				.baseUrl(mBaseUrl)
+				.addConverterFactory(GsonConverterFactory.create())
+				.client(mHttpClient)
+				.build();
+
+		RestApiService service = retrofit.create(RestApiService.class);
+
+		return service.updateStamp(body);
 	}
 
 	public Call<ResponseBody> sendNotification(String uid, HttpRequestNotificationInfo body) {
