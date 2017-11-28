@@ -32,6 +32,7 @@ public class SplashActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
+        //Get user id
         userManager = UserManager.getInstance();
         if (userManager.getContext() == null) {
             userManager.init(mContext);
@@ -40,11 +41,47 @@ public class SplashActivity extends AppCompatActivity {
         mUid = userManager.getUid();
         Log.d(TAG, "access uid : " + mUid);
 
+        //Permission check
         if (Util.checkPermission(SplashActivity.this)) {
             papastampStart();
         }
     }
 
+    private void papastampStart() {
+        Log.d(TAG, "papastampStart() enter");
+
+        Thread mThread = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    sleep(1000);
+                    SharedPreferences pref = getSharedPreferences(Constants.PREFERENCE_INTRO, Context.MODE_PRIVATE);
+                    Log.d(TAG, "PREFERENCE_INTRO : " + pref);
+                    boolean needSkip = false;
+                    if (pref != null) {
+                        needSkip = pref.getBoolean(Constants.PREFERENCE_INTRO_SKIP, false);
+                        Log.d(TAG, "Intro Skip case : " + needSkip);
+                    }
+                    Intent splashItntent;
+                    if (needSkip) {
+                        splashItntent = new Intent(SplashActivity.this, LoginActivity.class);
+                        splashItntent.putExtra("userId", mUid);
+                    } else {
+                        splashItntent = new Intent(SplashActivity.this, IntroActivity.class);
+                        splashItntent.putExtra("userId", mUid);
+                    }
+                    startActivity(splashItntent);
+                    finish();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+
+        mThread.start();
+    }
+
+    //Permission check method
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         Log.d(TAG, "onRequestPermissionsResult() enter");
@@ -65,40 +102,5 @@ public class SplashActivity extends AppCompatActivity {
                 Log.e(TAG, "Undefined code");
                 break;
         }
-    }
-
-    private void papastampStart() {
-        Log.d(TAG, "papastampStart() enter");
-        final ProgressDialog progressDialog = ProgressDialog.show(SplashActivity.this, "Please wait...", "Progressing...", true);
-        Thread mThread = new Thread() {
-            @Override
-            public void run() {
-                try {
-                    sleep(1000);
-                    SharedPreferences pref = getSharedPreferences(Constants.PREFERENCE_INTRO, Context.MODE_PRIVATE);
-                    Log.d(TAG, "PREFERENCE_INTRO : " + pref);
-                    boolean needSkip = false;
-                    if (pref != null) {
-                        needSkip = pref.getBoolean(Constants.PREFERENCE_INTRO_SKIP, false);
-                        Log.d(TAG, "Intro Skip case : " + needSkip);
-                    }
-                    Intent splashItntent;
-                    if (needSkip) {
-                        splashItntent = new Intent(SplashActivity.this, LoginActivity.class);//LoginActivity
-                        splashItntent.putExtra("userId", mUid);
-                    } else {
-                        splashItntent = new Intent(SplashActivity.this, IntroActivity.class);//IntroActivity
-                        splashItntent.putExtra("userId", mUid);
-                    }
-                    startActivity(splashItntent);
-                    finish();
-                    progressDialog.dismiss();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-
-        mThread.start();
     }
 }
