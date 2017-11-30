@@ -21,18 +21,6 @@
     <EditText
         android:layout_width="300dp"
         android:layout_height="50dp"
-        android:id="@+id/phoneInput"
-        android:layout_centerHorizontal="true"
-        android:textColor="#E0FFFF"
-        android:hint="Phone Number"
-        android:paddingLeft="10dp"
-        android:background="@drawable/edit_bg"
-        android:layout_marginTop="50dp"
-        android:layout_below="@+id/mainText"/>
-
-    <EditText
-        android:layout_width="300dp"
-        android:layout_height="50dp"
         android:id="@+id/emailInput"
         android:layout_centerHorizontal="true"
         android:textColor="#E0FFFF"
@@ -40,7 +28,7 @@
         android:paddingLeft="10dp"
         android:background="@drawable/edit_bg"
         android:layout_marginTop="10dp"
-        android:layout_below="@+id/phoneInput"/>
+        android:layout_below="@+id/mainText"/>
 
     <EditText
         android:layout_width="300dp"

@@ -1,9 +1,7 @@
 package com.subin.papastamp;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -14,7 +12,6 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.subin.papastamp.common.Constants;
-import com.subin.papastamp.model.UserManager;
 
 public class IntroActivity extends Activity implements ViewPager.OnPageChangeListener {
 	private final String TAG = "[Intro Activity] ";
@@ -30,6 +27,7 @@ public class IntroActivity extends Activity implements ViewPager.OnPageChangeLis
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_intro);
 
+		//Get user id
 		Intent initIntent = getIntent();
 		mUid = initIntent.getExtras().getString("userId");
 		Log.d(TAG, "access uid : " + mUid);
@@ -38,37 +36,16 @@ public class IntroActivity extends Activity implements ViewPager.OnPageChangeLis
 		skip.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
+				//Check intro page
 				SharedPreferences pref = mActivity.getSharedPreferences(Constants.PREFERENCE_INTRO, Context.MODE_PRIVATE);
 				SharedPreferences.Editor edit = pref.edit();
 				edit.putBoolean(Constants.PREFERENCE_INTRO_SKIP, true);
 				edit.commit();
 
 				Intent introItntent = new Intent(IntroActivity.this, LoginActivity.class);
-//				introItntent.putExtra("regCheck", "hide");
 				introItntent.putExtra("userId", mUid);
 				startActivity(introItntent);
 				finish();
-				/*AlertDialog.Builder alert_confirm = new AlertDialog.Builder(IntroActivity.this);
-				alert_confirm.setMessage("E-mail 등록 하시겠습니까??").setCancelable(false).setPositiveButton("등록하기",
-						new DialogInterface.OnClickListener() {
-							@Override
-							public void onClick(DialogInterface dialog, int which) {
-
-							}
-						}).setNegativeButton("다음에 등록하기",
-						new DialogInterface.OnClickListener() {
-							@Override
-							public void onClick(DialogInterface dialog, int which) {
-								itntent = new Intent(IntroActivity.this, MainActivity.class);
-								itntent.putExtra("pushCheck", "hide");
-								itntent.putExtra("shopCode", "0000");
-								itntent.putExtra("userId", mUid);
-								startActivity(itntent);
-								finish();
-							}
-						});
-				AlertDialog alert = alert_confirm.create();
-				alert.show();*/
 			}
 		});
 

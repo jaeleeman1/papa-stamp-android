@@ -71,6 +71,24 @@ public class HttpClientManager {
 		return service.getAdminAuthToken();
 	}
 
+	public Call<ResponseBody> insertUserInfo(HttpRequestUserInfo body) {
+		Log.d(TAG, "Papastamp getAdminAuthToken() was called");
+
+		if (mAccessUid == null || mAccessUid.isEmpty()) {
+			return null;
+		}
+
+		Retrofit retrofit = new Retrofit.Builder()
+				.baseUrl(mBaseUrl)
+				.addConverterFactory(GsonConverterFactory.create())
+				.client(mHttpClient)
+				.build();
+
+		RestApiService service = retrofit.create(RestApiService.class);
+
+		return service.insertUserInfo(body);
+	}
+
 	public Call<ResponseBody> updateLocation(HttpRequestLocationInfo body) {
 		Log.d(TAG, "updateLocation() was called");
 

@@ -31,7 +31,7 @@ public class UserManager {
 	private static String mPid = null;
 	private String mUid;
 	private String mFid;
-	private String mEmail;
+	private String mAccessToken;
 	private static final String TAG = "[UserManager] ";
 
 	private UserManager() {}
@@ -54,6 +54,25 @@ public class UserManager {
 	public void init(Context context) {
 		mContext = context;
 		mAuth = FirebaseAuth.getInstance();
+	}
+
+	public String getAccesstoken() {
+		Log.d(TAG, "@@@@@@@@@@@ firebase start @@@@@@@@@@@@");
+		mAuthListener = new FirebaseAuth.AuthStateListener() {
+			@Override
+			public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+				FirebaseUser user = firebaseAuth.getCurrentUser();
+				String accessToken = FirebaseInstanceId.getInstance().getToken();
+				if (user != null) {
+					Log.d(TAG, "onAuthStateChanged(Firebase):" + user.getUid());
+					Log.d(TAG, "token :" + accessToken);
+
+					mAccessToken = accessToken;
+				}
+			}
+		};
+		Log.d(TAG, "@@@@@@@@@@@ firebase end @@@@@@@@@@@@");
+		return mAccessToken;
 	}
 
 	public String getFid() {

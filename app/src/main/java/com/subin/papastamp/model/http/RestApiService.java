@@ -31,6 +31,9 @@ public interface RestApiService {
 	@PUT("map/v1.0/updateLocation")
 	Call<ResponseBody> updateLocation(@Body HttpRequestLocationInfo body);
 
+	@POST("user/v1.0/userInfo")
+	Call<ResponseBody> insertUserInfo(@Body HttpRequestUserInfo body);
+
 	@PUT("tablet/v1.0/insertStampHistory")
 	Call<ResponseBody> insertStampHistory(@Body HttpRequestStampInfo body);
 
@@ -42,8 +45,6 @@ public interface RestApiService {
 
 
 
-	@POST("account/userInfo/")
-	Call<ResponseBody> addAccount(@Body HttpRequestAccountInfo body);
 
 	@GET("main")
 	Call<ResponseBody> getMain();

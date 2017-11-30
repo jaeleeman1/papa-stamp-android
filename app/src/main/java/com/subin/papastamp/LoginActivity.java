@@ -1,6 +1,7 @@
 package com.subin.papastamp;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -33,6 +34,7 @@ import com.subin.papastamp.model.UserManager;
 import com.subin.papastamp.model.http.HttpClientManager;
 import com.subin.papastamp.model.http.HttpRequestLocationInfo;
 import com.subin.papastamp.model.http.HttpRequestLoginInfo;
+import com.subin.papastamp.model.http.HttpRequestUserInfo;
 import com.subin.papastamp.model.http.HttpResponseFirebaseToken;
 import com.subin.papastamp.model.http.HttpResponseLoginInfo;
 
@@ -44,14 +46,16 @@ import retrofit2.Response;
 public class LoginActivity extends AppCompatActivity {
     private final String TAG = "[Login Activity] : ";
     private LoginActivity mActivity;
-    private EditText phoneInput, emailInput, passwordInput, passwordConfirmInput;
+    private EditText emailInput, passwordInput, passwordConfirmInput;
     private SharedPreferences pref;
     private boolean needSkip = false;
     private SharedPreferences.Editor saveEditor;
     private Button registrationEmail;
     private TextView policyText;
     private String emailInputStr;
+    private String passwordInputStr;
     private String mUid;
+    private String faccesstoken;
     private FirebaseAuth mAuth;
     private FirebaseAuth.AuthStateListener mAuthListener;
     private Context mContext;
@@ -74,17 +78,17 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
+        //Get user id
         Intent loginIntent = getIntent();
         mUid = loginIntent.getExtras().getString("userId");
         Log.d(TAG, "access uid : " + mUid);
-//        String regCheck = loginIntent.getExtras().getString("regCheck");
-//        Log.d(TAG, "registration check : " + regCheck);
 
         userManager = UserManager.getInstance();
         if (userManager.getContext() == null) {
             userManager.init(mContext);
         }
 
+        //Get user location
         locationManager = LocationManager.getInstance();
         if (locationManager.getContext() == null) {
             locationManager.init(mContext);
@@ -95,13 +99,17 @@ public class LoginActivity extends AppCompatActivity {
         Log.d(TAG, "Location Latitude : " + mLatitude);
         Log.d(TAG, "Location Longitude : " + mLongitude);
 
+        //Send to server of user location
         sendLocationToServer(mLatitude, mLongitude);
 
+        //Check user login info
         pref = mActivity.getSharedPreferences(Constants.PREFERENCE_USER, Context.MODE_PRIVATE);
         needSkip = pref.getBoolean(Constants.PREFERENCE_USER_SKIP, false);
 
         String fid = userManager.getFid();
         Log.d(TAG, "firebase uid : " + fid);
+        faccesstoken = userManager.getAccesstoken();
+        Log.d(TAG, "firebase accesstoken : " + faccesstoken);
 
         if (needSkip) {
             Intent passIntent = new Intent(LoginActivity.this, MainActivity.class);
@@ -111,67 +119,19 @@ public class LoginActivity extends AppCompatActivity {
             startActivity(passIntent);
             finish();
         }
-//        } else {
 
-        phoneInput = (EditText) findViewById(R.id.phoneInput);
         emailInput = (EditText) findViewById(R.id.emailInput);
         passwordInput = (EditText) findViewById(R.id.passwordInput);
         passwordConfirmInput = (EditText) findViewById(R.id.passwordConfirmInput);
         registrationEmail = (Button) findViewById(R.id.regButton);
         policyText = (TextView) findViewById(R.id.policy_text);
 
-            /*if(regCheck.equals("hide")) {
-                phoneInput.setVisibility(View.GONE);
-                passwordConfirmInput.setVisibility(View.GONE);
-                registrationEmail.setBackgroundResource(R.drawable.login_button);
-                policyText.setText("회원가입");
-                policyText.setTextSize(20);
-
-                policyText.setOnClickListener(new Button.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        Intent signupIntent = new Intent (LoginActivity.this, LoginActivity.class);
-                        signupIntent.putExtra("regCheck", "show");
-                        signupIntent.putExtra("userId", mUid);
-                        startActivity(signupIntent);
-                        finish();
-                    }
-                });
-
-                //click loginEmail button
-                registrationEmail.setOnClickListener(new Button.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        emailInputStr = emailInput.getText().toString();
-                        String passwordInputStr = passwordInput.getText().toString();
-
-                        if ("".equals(emailInputStr)) {
-                            Toast.makeText(LoginActivity.this, "E-mail을 입력하세요", Toast.LENGTH_LONG).show();
-                        } else {
-                            if (!isValidEmail(emailInputStr)) { //!isValidEmail(emailInputStr)) {
-                                Toast.makeText(LoginActivity.this, "올바른 E-mail을 입력하세요", Toast.LENGTH_LONG).show();
-                            } else {
-                                if ("".equals(passwordInputStr)) {
-                                    Toast.makeText(LoginActivity.this, "패스워드를 입력하세요", Toast.LENGTH_LONG).show();
-                                } else {
-                                    if (!isValidPasswd(passwordInputStr)) {
-                                        Toast.makeText(LoginActivity.this, "패스워드는 6자 이상으로 설정하세요(한글 미포함)", Toast.LENGTH_LONG).show();
-                                    } else {
-                                        userLoginCheck(emailInputStr, passwordInputStr);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }else {*/
-
         //click registrationEmail button
         registrationEmail.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View view) {
                 emailInputStr = emailInput.getText().toString();
-                String passwordInputStr = passwordInput.getText().toString();
+                passwordInputStr = passwordInput.getText().toString();
 
                 if ("".equals(emailInputStr)) {
                     Toast.makeText(LoginActivity.this, "E-mail을 입력하세요", Toast.LENGTH_LONG).show();
@@ -185,19 +145,22 @@ public class LoginActivity extends AppCompatActivity {
                             if (!isValidPasswd(passwordInputStr)) {
                                 Toast.makeText(LoginActivity.this, "패스워드는 6자 이상으로 설정하세요(한글 미포함)", Toast.LENGTH_LONG).show();
                             } else {
-
                                 AlertDialog.Builder alert_confirm = new AlertDialog.Builder(LoginActivity.this);
                                 alert_confirm.setMessage("입력하신 내용으로 등록 하시겠습니까??").setCancelable(false).setPositiveButton("확인",
                                         new DialogInterface.OnClickListener() {
                                             @Override
                                             public void onClick(DialogInterface dialog, int which) {
-                                                insertFirebaseUserId();
+                                                final ProgressDialog progressDialog = ProgressDialog.show(LoginActivity.this, "Please wait...", "Progressing...", true);
+                                                //Create firebase user id
+                                                createFirebaseUserId();
 
+                                                //Check user login info
                                                 SharedPreferences.Editor edit = pref.edit();
                                                 edit.putBoolean(Constants.PREFERENCE_USER_SKIP, true);
                                                 edit.commit();
 
                                                 //DB insert
+                                                insertUserInfo(faccesstoken, emailInputStr, passwordInputStr);
 
                                                 Intent papaMainIntent = new Intent (LoginActivity.this, MainActivity.class);
                                                 papaMainIntent.putExtra("pushCheck", "hide");
@@ -207,6 +170,7 @@ public class LoginActivity extends AppCompatActivity {
                                                 finish();
 
                                                 Toast.makeText(LoginActivity.this, "Papa Stamp에 오신걸 환영합니다.", Toast.LENGTH_LONG).show();
+                                                progressDialog.dismiss();
                                             }
                                         }).setNegativeButton("취소",
                                         new DialogInterface.OnClickListener() {
@@ -223,8 +187,6 @@ public class LoginActivity extends AppCompatActivity {
                 }
             }
         });
-//        }
-//        }
 
         //input phone number
         emailInput.addTextChangedListener(new TextWatcher() {
@@ -318,7 +280,7 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    private void insertFirebaseUserId() {
+    private void createFirebaseUserId() {
         Log.i(TAG, "Create firebase user id");
 
         HttpClientManager httpClientManager = HttpClientManager.getInstance();
@@ -345,6 +307,34 @@ public class LoginActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<HttpResponseFirebaseToken> call, Throwable t) {
+                Log.d(TAG, "REST API request failed");
+            }
+        });
+    }
+
+    private void insertUserInfo(String accessToken, String userEmail, String userPassword) {
+        Log.i(TAG, "Insert user info");
+
+        HttpClientManager httpClientManager = HttpClientManager.getInstance();
+        httpClientManager.initHeader();
+        HttpRequestUserInfo body = new HttpRequestUserInfo(accessToken, userEmail, userPassword);
+        Call<ResponseBody> call = httpClientManager.insertUserInfo(body);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                //Log.d(TAG, "REST API request OK");
+                Log.d(TAG, "Response: " + response);
+                Log.d(TAG, "Response header: " + response.headers());
+
+                if (response.code() == 200) {
+                    Log.d(TAG, "REST API (updating access token) response succeed");
+                } else {
+                    Log.e(TAG, "REST API (updating access token) response failed");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
                 Log.d(TAG, "REST API request failed");
             }
         });
