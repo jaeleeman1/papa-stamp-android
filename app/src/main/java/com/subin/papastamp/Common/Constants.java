@@ -14,5 +14,7 @@ public class Constants {
 	public static final String PREFERENCE_USER = "LoginActivity.USER_PREF";
 	public static final String PREFERENCE_USER_SKIP = "IntroActivity.USER_PREF_SKIP";
 
+	//beacon push message
+	public static final int BEACON_PUSH_MSG = 1001001;
 
 }
