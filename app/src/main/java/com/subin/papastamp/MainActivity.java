@@ -27,6 +27,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -43,6 +44,7 @@ import com.bumptech.glide.request.target.GlideDrawableImageViewTarget;
 import com.subin.papastamp.model.RecoMonitoringService;
 import com.subin.papastamp.model.http.HttpClientManager;
 import com.subin.papastamp.model.http.HttpRequestStampInfo;
+import com.subin.papastamp.model.http.HttpResponseShopInfo;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -92,9 +94,11 @@ public class MainActivity extends AppCompatActivity {
     private LeDeviceListAdapter mLeDeviceListAdapter;
     private boolean mScanning;
     private Handler mHandler;
-    private ToggleButton pushButton;
+    private ToggleButton stampPushButton;
+    private ToggleButton couponPushButton;
     private Vibrator vide;
     private AlertDialog requestStampDialog;
+    private AlertDialog requestCouponDialog;
 
     // Stops scanning after 10 seconds.(스캐닝을 10초후에 자동으로 멈춥.)
     private static final long SCAN_PERIOD = 10000;
@@ -102,6 +106,10 @@ public class MainActivity extends AppCompatActivity {
     private Boolean threadFlag = true;
 
     private static String PAPAURL = "";
+
+    private static String shopId = "";
+
+    private static String shopBeacon = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -118,48 +126,64 @@ public class MainActivity extends AppCompatActivity {
         Intent pushIntent = getIntent();
         //Push Check
         String pushCheck = pushIntent.getExtras().getString("pushCheck");
-        //Shop Code
-        String shopCode = pushIntent.getExtras().getString("shopCode");
+        Log.d(TAG, "pushCheck: " + pushCheck);
+        //Shop ID
+        shopId = pushIntent.getExtras().getString("shopId");
+        Log.d(TAG, "shopId: " + shopId);
+        //Shop Beacon
+        shopBeacon = pushIntent.getExtras().getString("shopBeacon");
+        Log.d(TAG, "shopBeacon: " + shopBeacon);
         //User ID
         String mUid = pushIntent.getExtras().getString("userId");
+        Log.d(TAG, "userId: " + pushCheck);
 
-        pushButton = (ToggleButton) findViewById(R.id.pushButton);
+        String mLatitude = pushIntent.getExtras().getString("mLatitude");
+        String mLongitude = pushIntent.getExtras().getString("mLongitude");
+        Log.d(TAG, "mLatitude: " + pushCheck);
+        Log.d(TAG, "mLongitude: " + pushCheck);
 
-        Log.d(TAG, "pushCheck: " + pushCheck);
+        stampPushButton = (ToggleButton) findViewById(R.id.stampPushButton);
+        couponPushButton = (ToggleButton) findViewById(R.id.couponPushButton);
+        couponPushButton.setVisibility(View.GONE);
+
         if(pushCheck.equals("hide")) {
-            pushButton.setVisibility(View.GONE);
-            PAPAURL = "https://whereareevent.com/map/v1.0/mapMain";
+            stampPushButton.setVisibility(View.GONE);
+            PAPAURL = "https://whereareevent.com/v1/shop/main?user_id="+mUid +"&current_lat="+ mLatitude +"&current_lng=" + mLongitude;
         }else {
-            Log.d(TAG, "shopCode: " + shopCode);
-            PAPAURL = "https://whereareevent.com/shop/v1.0/shopInfo/"+shopCode;
+            Log.d(TAG, "shopId: " + shopId);
+            PAPAURL = "https://whereareevent.com/v1/stamp/main?user_id="+mUid + "&shop_id="+shopId + "&current_lat=37.650804099999995&current_lng=126.88645269999999";
         }
 
-        pushButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        stampPushButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked == true){
-                    scanLeDevice(true);
-                    showDialog();
+            public void onCheckedChanged(CompoundButton buttonView, boolean isStampChecked) {
+                if (isStampChecked == true){
+                    scanLeStampDevice(true);
+                    showStampDialog();
                 } else {
                     threadFlag = true;
-                    scanLeDevice(false);
+                    scanLeStampDevice(false);
                     mScanning = false;
-                    mBLEScanner.stopScan(mScanCallback);
-                    closeDialog();
+                    mBLEScanner.stopScan(mScanStampCallback);
+                    closeStampDialog();
                 }
             }
         });
 
         WebView papastampWebView = (WebView) findViewById(R.id.webView);
         papastampWebView.setWebViewClient(new WebViewClient());
+        papastampWebView.addJavascriptInterface(this, "Bridge");
         WebSettings webSettings = papastampWebView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
         webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
         webSettings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.SINGLE_COLUMN);
+        webSettings.setLoadWithOverviewMode(true);
+        webSettings.setUseWideViewPort(true);
 
         try {
-            papastampWebView.loadUrl(PAPAURL+"/"+mUid);
+//            papastampWebView.loadUrl(PAPAURL+"/"+mUid);
+            papastampWebView.loadUrl(PAPAURL);
         }catch (Exception e){
             Log.d("Error",e.getMessage());
         }
@@ -196,43 +220,32 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void insertStampHistory(String shopId) {
-        Log.i(TAG, "insertStampHistory");
-
-        HttpClientManager httpClientManager = HttpClientManager.getInstance();
-
-        httpClientManager.initHeader();
-        HttpRequestStampInfo body = new HttpRequestStampInfo(shopId);
-        Call<ResponseBody> call = httpClientManager.insertStampHistory(body);
-        call.enqueue(new Callback<ResponseBody>() {
+    @JavascriptInterface
+    public void callSettingsActivity(final String message) {
+        mHandler.post(new Runnable() {
             @Override
-            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                //Log.d(TAG, "REST API request OK");
-                Log.d(TAG, "Response: " + response);
-                Log.d(TAG, "Response header: " + response.headers());
-
-                if (response.code() == 200) {
-                    Log.d(TAG, "REST API response OK");
-                    if (response.body() != null) {
-                        try {
-                            //TODO: Use response.body().bytes() to handle thumbnail file image
-                            Log.d(TAG, "Response body: " + response.body().string());
-                        } catch (IOException e) {
+            public void run() {
+                couponPushButton.setVisibility(View.VISIBLE);
+                couponPushButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton buttonView, boolean isCouponChecked) {
+                        if (isCouponChecked == true){
+                            scanLeCouponDevice(true);
+                            showCouponDialog();
+                        } else {
+                            threadFlag = true;
+                            scanLeCouponDevice(false);
+                            mScanning = false;
+                            mBLEScanner.stopScan(mScanCouponCallback);
+                            closeCouponDialog();
                         }
-                    } else {
-                        Log.d(TAG, "REST API response failed");
                     }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Log.d(TAG, "REST API request failed");
+                });
             }
         });
     }
 
-    private void updateStamp(String shopId) {
+    private void updateStamp() {
         Log.i(TAG, "updateStamp");
 
         HttpClientManager httpClientManager = HttpClientManager.getInstance();
@@ -268,7 +281,43 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void showDialog() {
+    private void updateCoupon() {
+        Log.i(TAG, "updateCoupon");
+
+        HttpClientManager httpClientManager = HttpClientManager.getInstance();
+
+        httpClientManager.initHeader();
+        HttpRequestStampInfo body = new HttpRequestStampInfo(shopId, "couponNumber");
+        Call<ResponseBody> call = httpClientManager.updateCoupon(body);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                //Log.d(TAG, "REST API request OK");
+                Log.d(TAG, "Response: " + response);
+                Log.d(TAG, "Response header: " + response.headers());
+
+                if (response.code() == 200) {
+                    Log.d(TAG, "REST API response OK");
+                    if (response.body() != null) {
+                        try {
+                            //TODO: Use response.body().bytes() to handle thumbnail file image
+                            Log.d(TAG, "Response body: " + response.body().string());
+                        } catch (IOException e) {
+                        }
+                    } else {
+                        Log.d(TAG, "REST API response failed");
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.d(TAG, "REST API request failed");
+            }
+        });
+    }
+
+    public void showStampDialog() {
         Context mContext = getApplicationContext();
 
         LayoutInflater inflater
@@ -310,9 +359,54 @@ public class MainActivity extends AppCompatActivity {
         textView.setTextSize(30.0f);
     }
 
-    private void closeDialog()
-    {
+    private void closeStampDialog() {
         requestStampDialog.dismiss();
+    }
+
+    public void showCouponDialog() {
+        Context mContext = getApplicationContext();
+
+        LayoutInflater inflater
+                = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View stampLayout = inflater.inflate(R.layout.stamp_image, null);
+
+        ImageView image = (ImageView) stampLayout.findViewById(R.id.papaStampImage);
+        GlideDrawableImageViewTarget imageViewTarget = new GlideDrawableImageViewTarget(image);
+        Glide.with(this).load(R.drawable.stamp_icon).into(imageViewTarget);
+
+        AlertDialog.Builder myDialogBuilder = new AlertDialog.Builder(this, R.style.stamp_dialog);
+        TextView title = new TextView(this);
+        title.setText(R.string.dialog_title);
+        title.setGravity(Gravity.CENTER);
+        title.setTextColor(Color.RED);
+        title.setTextSize(12);
+        myDialogBuilder.setCancelable(false);
+        myDialogBuilder.setCustomTitle(title);
+        myDialogBuilder.setMessage(R.string.dialog_message);
+
+        requestCouponDialog = myDialogBuilder.create();
+        requestCouponDialog.setView(stampLayout);
+
+        LayoutParams params = requestCouponDialog.getWindow().getAttributes();
+        params.flags = WindowManager.LayoutParams.FLAG_DIM_BEHIND;
+        params.height = 1200;
+        params.dimAmount = 0.8f;
+        params.y = 230;
+        params.gravity = Gravity.TOP;
+
+        requestCouponDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+        requestCouponDialog.getWindow().setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL, WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL);
+
+        requestCouponDialog.getWindow().setAttributes(params);
+
+        requestCouponDialog.show();
+
+        TextView textView = (TextView) requestCouponDialog.findViewById(android.R.id.message);
+        textView.setTextSize(30.0f);
+    }
+
+    private void closeCouponDialog() {
+        requestCouponDialog.dismiss();
     }
 
 /*    private Button.OnClickListener pushButtonListener = new View.OnClickListener() {
@@ -332,30 +426,57 @@ public class MainActivity extends AppCompatActivity {
         }
     };*/
 
-    private void scanLeDevice(final boolean enable) {
+    private void scanLeStampDevice(final boolean enable) {
         if (enable) {
             Log.i("BackMonitoringService", "블루투스 찾기 시작");
             // Stops scanning after a pre-defined scan period.
             mHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    if(pushButton.isChecked()) {
-                        pushButton.performClick();
+                    if(stampPushButton.isChecked()) {
+                        stampPushButton.performClick();
                         Toast.makeText(MainActivity.this, "요청 시간이 초과되었습니다. 다시 요청하세요", Toast.LENGTH_SHORT).show();
                     }
                     mScanning = false;
-                    mBLEScanner.stopScan(mScanCallback);
+                    mBLEScanner.stopScan(mScanStampCallback);
                 }
             }, SCAN_PERIOD);
 
             mScanning = true;
-            mBLEScanner.startScan(mScanCallback);
+            mBLEScanner.startScan(mScanStampCallback);
         } else {
             Log.i("BackMonitoringService", "블루투스 찾기 중지");
             threadFlag = true;
             mHandler.removeCallbacksAndMessages(null);
             mScanning = false;
-            mBLEScanner.stopScan(mScanCallback);
+            mBLEScanner.stopScan(mScanStampCallback);
+        }
+    }
+
+    private void scanLeCouponDevice(final boolean enable) {
+        if (enable) {
+            Log.i("BackMonitoringService", "블루투스 찾기 시작");
+            // Stops scanning after a pre-defined scan period.
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if(couponPushButton.isChecked()) {
+                        couponPushButton.performClick();
+                        Toast.makeText(MainActivity.this, "요청 시간이 초과되었습니다. 다시 요청하세요", Toast.LENGTH_SHORT).show();
+                    }
+                    mScanning = false;
+                    mBLEScanner.stopScan(mScanCouponCallback);
+                }
+            }, SCAN_PERIOD);
+
+            mScanning = true;
+            mBLEScanner.startScan(mScanCouponCallback);
+        } else {
+            Log.i("BackMonitoringService", "블루투스 찾기 중지");
+            threadFlag = true;
+            mHandler.removeCallbacksAndMessages(null);
+            mScanning = false;
+            mBLEScanner.stopScan(mScanCouponCallback);
         }
     }
 
@@ -410,7 +531,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private ScanCallback mScanCallback = new ScanCallback() {
+    private ScanCallback mScanStampCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
 //            Log.i("BackMonitoringService", "블루투스 1개 찾음 : " + result.getRssi());
@@ -418,24 +539,90 @@ public class MainActivity extends AppCompatActivity {
             String deviceName = result.getDevice().getName();
             int rssi = result.getRssi();
 
-            if("RECO".equals(deviceName) && "D6:EC:1F:36:3E:CA".equals(compareBeacon)) {
+            if("RECO".equals(deviceName) && shopBeacon.equals(compareBeacon)) {
                 if(rssi > -74) {
                     if (threadFlag) {
                         threadFlag = false;
-                        Log.i("BackMonitoringService", "비콘 접근 완료 : " + compareBeacon);
+                        Log.i("BackMonitoringService", "스탬프 비콘 접근 완료 : " + compareBeacon);
                         Thread stampThread = new Thread(new Runnable(){
                             @Override
                             public void run() {
                                 mHandler.post(new Runnable(){
                                     @Override
                                     public void run() {
-                                        Log.i("BackMonitoringService", "찍음");
+                                        Log.i("BackMonitoringService", "스탬프 찍음");
                                         try {
-                                            Toast.makeText(MainActivity.this, "도장 찍기 완료", Toast.LENGTH_SHORT).show();
                                             vide.vibrate(700);
-                                            insertStampHistory("SB-SHOP-00001");
-                                            updateStamp("SB-SHOP-00001");
-                                            pushButton.performClick();
+                                            updateStamp();
+                                            Toast.makeText(MainActivity.this, "스탬프 찍기 완료", Toast.LENGTH_SHORT).show();
+                                            stampPushButton.performClick();
+                                            stampPushButton.setVisibility(View.GONE);
+                                            Thread.sleep(100);
+                                        } catch (InterruptedException e) {
+                                            System.err.println(e.getMessage());
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                        stampThread.setDaemon(true);
+                        stampThread.start();
+                    }
+                }
+            }
+            processResult(result);
+        }
+
+        @Override
+        public void onBatchScanResults(List<ScanResult> results) {
+            Log.i("BackMonitoringService", "블루투스 여러개 찾음");
+            for (ScanResult result : results) {
+                processResult(result);
+            }
+        }
+
+        @Override
+        public void onScanFailed(int errorCode) {
+            Log.i("BackMonitoringService", "블루투스 못 찾음");
+        }
+
+        private void processResult(final ScanResult result) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mLeDeviceListAdapter.addDevice(result.getDevice());
+                    mLeDeviceListAdapter.notifyDataSetChanged();
+                }
+            });
+        }
+    };
+
+    private ScanCallback mScanCouponCallback = new ScanCallback() {
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+//            Log.i("BackMonitoringService", "블루투스 1개 찾음 : " + result.getRssi());
+            String compareBeacon = result.getDevice().toString();
+            String deviceName = result.getDevice().getName();
+            int rssi = result.getRssi();
+
+            if("RECO".equals(deviceName) && shopBeacon.equals(compareBeacon)) {
+                if(rssi > -74) {
+                    if (threadFlag) {
+                        threadFlag = false;
+                        Log.i("BackMonitoringService", "쿠폰 비콘 접근 완료 : " + compareBeacon);
+                        Thread stampThread = new Thread(new Runnable(){
+                            @Override
+                            public void run() {
+                                mHandler.post(new Runnable(){
+                                    @Override
+                                    public void run() {
+                                        Log.i("BackMonitoringService", "쿠폰 찍음");
+                                        try {
+                                            vide.vibrate(700);
+                                            updateCoupon();
+                                            Toast.makeText(MainActivity.this, "쿠폰 사용 완료", Toast.LENGTH_SHORT).show();
+                                            couponPushButton.performClick();
+                                            couponPushButton.setVisibility(View.GONE);
                                             Thread.sleep(100);
                                         } catch (InterruptedException e) {
                                             System.err.println(e.getMessage());

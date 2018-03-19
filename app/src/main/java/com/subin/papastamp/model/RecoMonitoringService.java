@@ -20,9 +20,15 @@ import com.perples.recosdk.RECOMonitoringListener;
 import com.perples.recosdk.RECOServiceConnectListener;
 import com.subin.papastamp.MainActivity;
 import com.subin.papastamp.R;
+import com.subin.papastamp.model.http.HttpClientManager;
+import com.subin.papastamp.model.http.HttpResponseShopInfo;
 
 import java.util.ArrayList;
 import java.util.Collection;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class RecoMonitoringService extends Service implements RECOMonitoringListener, RECOServiceConnectListener{
     static final String TAG = "RecoMonitoring";
@@ -169,9 +175,10 @@ public class RecoMonitoringService extends Service implements RECOMonitoringList
         Log.i("BackMonitoringService", "비콘 지역 들어옴 : " + region.getUniqueIdentifier());
         ArrayList<RECOBeacon> monitoringBeacons = new ArrayList<RECOBeacon>(beacons);
         for (RECOBeacon monitoringBeacon : monitoringBeacons) {
-            Log.i("BackMonitoringService", String.valueOf(monitoringBeacon.getMajor()));
-            Log.i("BackMonitoringService", String.valueOf(monitoringBeacon.getMinor()));
-            showMessage(this,"파파스탬프","쿠폰 적립을 쉽고 간편하게~!!", "Online Stamp Management", "SB-SHOP-00001");
+            String papaStampMajor = String.valueOf(monitoringBeacon.getMajor());
+            String papaStampMinor = String.valueOf(monitoringBeacon.getMinor());
+            Log.i("BackMonitoringService", papaStampMajor+papaStampMinor);
+            selectShopCodeToShopId(papaStampMajor+papaStampMinor);
         }
         //Write the code when the device is enter the region
     }
@@ -217,17 +224,18 @@ public class RecoMonitoringService extends Service implements RECOMonitoringList
         return;
     }
 
-    private void showMessage(Context context, String title, String msg, String ticker, String shopCode) {
+    private void showMessage(Context context, String title, String msg, String ticker, String shopCode, String shopId, String shopBeacon) {
         //비콘 신호 수신시 메시지 전송....
         NotificationManager mManager = (NotificationManager)context.getSystemService(NOTIFICATION_SERVICE);
         PendingIntent pendingIntent ;
-        int notifyID= (int) System.currentTimeMillis();
+        int notifyID=  Integer.parseInt(shopCode);
 
         Intent pushIntent =new Intent(getApplicationContext(), MainActivity.class);
         pushIntent.putExtra("pushCheck", "show");
         pushIntent.putExtra("userId", mUid);
-        pendingIntent = PendingIntent.getActivity(context, notifyID,
-                pushIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("shopCode",shopCode), PendingIntent.FLAG_UPDATE_CURRENT);
+        pushIntent.putExtra("shopId", shopId);
+        pushIntent.putExtra("shopBeacon", shopBeacon);
+        pendingIntent = PendingIntent.getActivity(context, notifyID, pushIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_UPDATE_CURRENT);
 
         NotificationCompat.Builder mBuilder;
 
@@ -249,5 +257,42 @@ public class RecoMonitoringService extends Service implements RECOMonitoringList
                 .setStyle(style);
 
         mManager.notify(notifyID, mBuilder.build());
+    }
+
+    private void selectShopCodeToShopId(String shopCode) {
+        Log.i(TAG, "Select stamp code");
+
+        HttpClientManager httpClientManager = HttpClientManager.getInstance();
+
+        httpClientManager.initHeader();
+        Call<HttpResponseShopInfo> call = httpClientManager.selectShopCodeToShopId(shopCode);
+        call.enqueue(new Callback<HttpResponseShopInfo>() {
+            @Override
+            public void onResponse(Call<HttpResponseShopInfo> call, Response<HttpResponseShopInfo> response) {
+                //Log.d(TAG, "REST API request OK");
+                Log.d(TAG, "Response: " + response);
+                Log.d(TAG, "Response header: " + response.headers());
+
+                if (response.code() == 200) {
+                    Log.d(TAG, "REST API response OK");
+                    if (response.body() != null) {
+                        Log.d(TAG, "Response body: " + response.body().shopCode);
+                        Log.d(TAG, "Response body: " + response.body().shopId);
+                        String responseShopCode = response.body().shopCode;
+                        String responseShopId = response.body().shopId;
+                        String responseShopBeacon = response.body().shopBeacon;
+
+                        showMessage(mContext, "파파스탬프","쿠폰 적립을 쉽고 간편하게~!!", "Online Stamp Management", responseShopCode, responseShopId, responseShopBeacon);
+                    } else {
+                        Log.d(TAG, "REST API response failed");
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<HttpResponseShopInfo> call, Throwable t) {
+                Log.d(TAG, "REST API request failed");
+            }
+        });
     }
 }

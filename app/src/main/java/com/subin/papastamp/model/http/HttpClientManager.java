@@ -38,7 +38,7 @@ public class HttpClientManager {
 
 		mAccessUid = UserManager.getInstance().getUid();
 		if (mAccessUid == null) {
-			Log.e(TAG, "Invalid Firebase ID");
+			Log.e(TAG, "Invalid User ID");
 		}
 
 		Log.d(TAG, "User ID: " + mAccessUid);
@@ -145,6 +145,42 @@ public class HttpClientManager {
 		return service.insertStampHistory(body);
 	}
 
+	public Call<HttpResponseShopInfo> selectShopCodeToShopId(String shopCode) {
+		Log.d(TAG, "Papastamp getMapMain() was called");
+
+		if (mAccessUid == null || mAccessUid.isEmpty()) {
+			return null;
+		}
+
+		Retrofit retrofit = new Retrofit.Builder()
+				.baseUrl(mBaseUrl)
+				.addConverterFactory(GsonConverterFactory.create())
+				.client(mHttpClient)
+				.build();
+
+		RestApiService service = retrofit.create(RestApiService.class);
+
+		return service.selectShopCodeToShopId(shopCode);
+	}
+
+	public Call<HttpResponseShopInfo> selectbeaconToShopId(String beaconCode) {
+		Log.d(TAG, "Papastamp getMapMain() was called");
+
+		if (mAccessUid == null || mAccessUid.isEmpty()) {
+			return null;
+		}
+
+		Retrofit retrofit = new Retrofit.Builder()
+				.baseUrl(mBaseUrl)
+				.addConverterFactory(GsonConverterFactory.create())
+				.client(mHttpClient)
+				.build();
+
+		RestApiService service = retrofit.create(RestApiService.class);
+
+		return service.selectbeaconToShopId(beaconCode);
+	}
+
 	public Call<ResponseBody> updateStamp(HttpRequestStampInfo body) {
 		Log.d(TAG, "Papastamp getMapMain() was called");
 
@@ -161,6 +197,24 @@ public class HttpClientManager {
 		RestApiService service = retrofit.create(RestApiService.class);
 
 		return service.updateStamp(body);
+	}
+
+	public Call<ResponseBody> updateCoupon(HttpRequestStampInfo body) {
+		Log.d(TAG, "Papastamp getMapMain() was called");
+
+		if (mAccessUid == null || mAccessUid.isEmpty()) {
+			return null;
+		}
+
+		Retrofit retrofit = new Retrofit.Builder()
+				.baseUrl(mBaseUrl)
+				.addConverterFactory(GsonConverterFactory.create())
+				.client(mHttpClient)
+				.build();
+
+		RestApiService service = retrofit.create(RestApiService.class);
+
+		return service.updateCoupon(body);
 	}
 
 	public Call<ResponseBody> sendNotification(String uid, HttpRequestNotificationInfo body) {

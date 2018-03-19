@@ -19,8 +19,6 @@ public class SplashActivity extends AppCompatActivity {
     private final String TAG = "[Splash Activity] : ";
     private Context mContext;
     private SplashActivity mActivity;
-    private UserManager userManager;
-    private String mUid;
 
     public SplashActivity() {
         mContext = this;
@@ -31,15 +29,6 @@ public class SplashActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
-
-        //Get user id
-        userManager = UserManager.getInstance();
-        if (userManager.getContext() == null) {
-            userManager.init(mContext);
-        }
-
-        mUid = userManager.getUid();
-        Log.d(TAG, "access uid : " + mUid);
 
         //Permission check
         if (Util.checkPermission(SplashActivity.this)) {
@@ -65,10 +54,8 @@ public class SplashActivity extends AppCompatActivity {
                     Intent splashItntent;
                     if (needSkip) {
                         splashItntent = new Intent(SplashActivity.this, LoginActivity.class);
-                        splashItntent.putExtra("userId", mUid);
                     } else {
                         splashItntent = new Intent(SplashActivity.this, IntroActivity.class);
-                        splashItntent.putExtra("userId", mUid);
                     }
                     startActivity(splashItntent);
                     finish();

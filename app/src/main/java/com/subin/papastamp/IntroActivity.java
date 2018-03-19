@@ -16,7 +16,6 @@ import com.subin.papastamp.common.Constants;
 public class IntroActivity extends Activity implements ViewPager.OnPageChangeListener {
 	private final String TAG = "[Intro Activity] ";
 	private IntroActivity mActivity;
-	private String mUid;
 
 	public IntroActivity() {
 		mActivity = this;
@@ -26,11 +25,6 @@ public class IntroActivity extends Activity implements ViewPager.OnPageChangeLis
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_intro);
-
-		//Get user id
-		Intent initIntent = getIntent();
-		mUid = initIntent.getExtras().getString("userId");
-		Log.d(TAG, "access uid : " + mUid);
 
 		TextView skip = (TextView)findViewById(R.id.skip_text);
 		skip.setOnClickListener(new View.OnClickListener() {
@@ -43,7 +37,6 @@ public class IntroActivity extends Activity implements ViewPager.OnPageChangeLis
 				edit.commit();
 
 				Intent introItntent = new Intent(IntroActivity.this, LoginActivity.class);
-				introItntent.putExtra("userId", mUid);
 				startActivity(introItntent);
 				finish();
 			}

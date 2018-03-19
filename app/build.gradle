@@ -28,7 +28,7 @@ dependencies {
     compile 'com.android.support:multidex:1.0.1'
 
     //Reco
-    compile project(':reco-sdk-android_1.1.4')
+    compile project(':reco-sdk-android')
 
     // HTTP
     compile 'com.squareup.okhttp3:okhttp:3.4.2'

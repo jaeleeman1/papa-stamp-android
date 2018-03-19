@@ -2,20 +2,14 @@ package com.subin.papastamp.model.http;
 
 //import com.google.android.exoplayer2.C;
 
-import java.util.List;
-import okhttp3.MultipartBody;
-import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.Headers;
-import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
-import retrofit2.http.Part;
 import retrofit2.http.Path;
-import retrofit2.http.Query;
 
 public interface RestApiService {
 	//public static final String BASE_URL = "http://52.78.164.163:7979/";
@@ -25,25 +19,34 @@ public interface RestApiService {
 			"Content-Type: application/json"
 	})
 
-	@GET("user/v1.0/userCreate")
-	Call<HttpResponseFirebaseToken> getAdminAuthToken();
-
-	@PUT("map/v1.0/updateLocation")
+	@PUT("v1/user/updateLocation")
 	Call<ResponseBody> updateLocation(@Body HttpRequestLocationInfo body);
 
-	@POST("user/v1.0/userInfo")
+	@POST("v1/user/userLogin")
+	Call<HttpResponseLoginInfo> userLoginCheck(@Body HttpRequestLoginInfo body);
+
+	@GET("v1/user/userCreate")
+	Call<HttpResponseFirebaseToken> getAdminAuthToken();
+
+	@POST("v1/user/userInfo")
 	Call<ResponseBody> insertUserInfo(@Body HttpRequestUserInfo body);
+
+	@POST("v1/stamp/update-stamp")
+	Call<ResponseBody> updateStamp(@Body HttpRequestStampInfo body);
+
+	@PUT("v1/coupon/useCoupon")
+	Call<ResponseBody> updateCoupon(@Body HttpRequestStampInfo body);
+
+	@GET("v1/user/shopCodeToShopId/{shop_code}")
+	Call<HttpResponseShopInfo> selectShopCodeToShopId(@Path("shop_code") String shopCode);
+
+	@GET("v1/user/beaconToShopId/{beacon_code}")
+	Call<HttpResponseShopInfo> selectbeaconToShopId(@Path("beacon_code") String beaconCode);
+
+
 
 	@PUT("tablet/v1.0/insertStampHistory")
 	Call<ResponseBody> insertStampHistory(@Body HttpRequestStampInfo body);
-
-	@POST("shop/v1.0/update-stamp")
-	Call<ResponseBody> updateStamp(@Body HttpRequestStampInfo body);
-
-	@POST("user/v1.0/userLogin")
-	Call<HttpResponseLoginInfo> userLoginCheck(@Body HttpRequestLoginInfo body);
-
-
 
 
 	@GET("main")
