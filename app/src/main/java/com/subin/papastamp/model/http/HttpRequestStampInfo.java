@@ -6,16 +6,11 @@ public class HttpRequestStampInfo {
 	@SerializedName("shop_id")
 	private final String shopId;
 
-	@SerializedName("coupon_number")
-	private final String couponNumber;
+	@SerializedName("param_number")
+	private final String paramNumber;
 
-	public HttpRequestStampInfo (String shopId) {
+	public HttpRequestStampInfo (String shopId, String paramNumber) {
 		this.shopId = shopId;
-		this.couponNumber = "";
-	}
-
-	public HttpRequestStampInfo (String shopId, String couponNumber) {
-		this.shopId = shopId;
-		this.couponNumber = couponNumber;
+		this.paramNumber = paramNumber;
 	}
 }

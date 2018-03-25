@@ -224,7 +224,7 @@ public class RecoMonitoringService extends Service implements RECOMonitoringList
         return;
     }
 
-    private void showMessage(Context context, String title, String msg, String ticker, String shopCode, String shopId, String shopBeacon) {
+    private void showMessage(Context context, String title, String msg, String ticker, String shopCode, String shopId, String shopBeacon, String shopCount) {
         //비콘 신호 수신시 메시지 전송....
         NotificationManager mManager = (NotificationManager)context.getSystemService(NOTIFICATION_SERVICE);
         PendingIntent pendingIntent ;
@@ -233,8 +233,10 @@ public class RecoMonitoringService extends Service implements RECOMonitoringList
         Intent pushIntent =new Intent(getApplicationContext(), MainActivity.class);
         pushIntent.putExtra("pushCheck", "show");
         pushIntent.putExtra("userId", mUid);
+
         pushIntent.putExtra("shopId", shopId);
         pushIntent.putExtra("shopBeacon", shopBeacon);
+        pushIntent.putExtra("shopCount", shopCount);
         pendingIntent = PendingIntent.getActivity(context, notifyID, pushIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_UPDATE_CURRENT);
 
         NotificationCompat.Builder mBuilder;
@@ -281,8 +283,9 @@ public class RecoMonitoringService extends Service implements RECOMonitoringList
                         String responseShopCode = response.body().shopCode;
                         String responseShopId = response.body().shopId;
                         String responseShopBeacon = response.body().shopBeacon;
+                        String responseShopCount = response.body().shopCount;
 
-                        showMessage(mContext, "파파스탬프","쿠폰 적립을 쉽고 간편하게~!!", "Online Stamp Management", responseShopCode, responseShopId, responseShopBeacon);
+                        showMessage(mContext, "파파스탬프","쿠폰 적립을 쉽고 간편하게~!!", "Online Stamp Management", responseShopCode, responseShopId, responseShopBeacon, responseShopCount);
                     } else {
                         Log.d(TAG, "REST API response failed");
                     }

@@ -37,6 +37,11 @@
             android:textOn="중 지"
             style="@style/request_button_text"/>
 
+        <Spinner
+            android:id="@+id/stampNumber"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content" />
+
         <ToggleButton
             android:id="@+id/couponPushButton"
             android:layout_width="wrap_content"

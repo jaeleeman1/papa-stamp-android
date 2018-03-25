@@ -31,9 +31,13 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -99,9 +103,12 @@ public class MainActivity extends AppCompatActivity {
     private Vibrator vide;
     private AlertDialog requestStampDialog;
     private AlertDialog requestCouponDialog;
+    private WebView papastampWebView;
 
     // Stops scanning after 10 seconds.(스캐닝을 10초후에 자동으로 멈춥.)
     private static final long SCAN_PERIOD = 10000;
+    private Spinner stampNumberButton;
+    private ArrayAdapter spinnerAdapter;
 
     private Boolean threadFlag = true;
 
@@ -110,6 +117,10 @@ public class MainActivity extends AppCompatActivity {
     private static String shopId = "";
 
     private static String shopBeacon = "";
+
+    private static String couponNumber = "";
+
+    private static String stampNumber = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,6 +144,9 @@ public class MainActivity extends AppCompatActivity {
         //Shop Beacon
         shopBeacon = pushIntent.getExtras().getString("shopBeacon");
         Log.d(TAG, "shopBeacon: " + shopBeacon);
+        //Shop Count
+        stampNumber = pushIntent.getExtras().getString("shopCount");
+        Log.d(TAG, "shopCount: " + stampNumber);
         //User ID
         String mUid = pushIntent.getExtras().getString("userId");
         Log.d(TAG, "userId: " + pushCheck);
@@ -144,15 +158,44 @@ public class MainActivity extends AppCompatActivity {
 
         stampPushButton = (ToggleButton) findViewById(R.id.stampPushButton);
         couponPushButton = (ToggleButton) findViewById(R.id.couponPushButton);
+        stampNumberButton = (Spinner)findViewById(R.id.stampNumber);
+
+        int stampNum = Integer.parseInt(stampNumber);
+
         couponPushButton.setVisibility(View.GONE);
 
         if(pushCheck.equals("hide")) {
             stampPushButton.setVisibility(View.GONE);
+            stampNumberButton.setVisibility(View.GONE);
             PAPAURL = "https://whereareevent.com/v1/shop/main?user_id="+mUid +"&current_lat="+ mLatitude +"&current_lng=" + mLongitude;
         }else {
-            Log.d(TAG, "shopId: " + shopId);
+            Log.d(TAG, "stampNum: " + stampNum);
             PAPAURL = "https://whereareevent.com/v1/stamp/main?user_id="+mUid + "&shop_id="+shopId + "&current_lat=37.650804099999995&current_lng=126.88645269999999";
+            if(stampNum != 1) {
+                String[] arrayInput = new String[stampNum];
+                for(int i= 0; i<stampNum; i++){
+                    arrayInput[i] = Integer.toString(i+1);
+                }
+                spinnerAdapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item, arrayInput);
+                stampNumberButton.setAdapter(spinnerAdapter);
+                stampNumber = stampNumberButton.getItemAtPosition(0).toString();
+            }else {
+                stampNumberButton.setVisibility(View.GONE);
+            }
         }
+
+        //event listener
+        stampNumberButton.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                stampNumber = stampNumberButton.getItemAtPosition(position).toString();
+                Toast.makeText(MainActivity.this,"선택된 갯수 : "+ stampNumber, Toast.LENGTH_SHORT).show();
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
 
         stampPushButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -170,7 +213,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        WebView papastampWebView = (WebView) findViewById(R.id.webView);
+        papastampWebView = (WebView) findViewById(R.id.webView);
         papastampWebView.setWebViewClient(new WebViewClient());
         papastampWebView.addJavascriptInterface(this, "Bridge");
         WebSettings webSettings = papastampWebView.getSettings();
@@ -221,7 +264,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @JavascriptInterface
-    public void callSettingsActivity(final String message) {
+    public void callSettingsActivity(final String paramShopId, final String paramShopBeacon, final String paramCouponNum) {
+        shopId = paramShopId;
+        shopBeacon = paramShopBeacon;
+        couponNumber = paramCouponNum;
         mHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -237,10 +283,12 @@ public class MainActivity extends AppCompatActivity {
                             scanLeCouponDevice(false);
                             mScanning = false;
                             mBLEScanner.stopScan(mScanCouponCallback);
+                            couponPushButton.setVisibility(View.GONE);
                             closeCouponDialog();
                         }
                     }
                 });
+                couponPushButton.performClick();
             }
         });
     }
@@ -251,7 +299,7 @@ public class MainActivity extends AppCompatActivity {
         HttpClientManager httpClientManager = HttpClientManager.getInstance();
 
         httpClientManager.initHeader();
-        HttpRequestStampInfo body = new HttpRequestStampInfo(shopId);
+        HttpRequestStampInfo body = new HttpRequestStampInfo(shopId, stampNumber);
         Call<ResponseBody> call = httpClientManager.updateStamp(body);
         call.enqueue(new Callback<ResponseBody>() {
             @Override
@@ -287,7 +335,7 @@ public class MainActivity extends AppCompatActivity {
         HttpClientManager httpClientManager = HttpClientManager.getInstance();
 
         httpClientManager.initHeader();
-        HttpRequestStampInfo body = new HttpRequestStampInfo(shopId, "couponNumber");
+        HttpRequestStampInfo body = new HttpRequestStampInfo(shopId, couponNumber);
         Call<ResponseBody> call = httpClientManager.updateCoupon(body);
         call.enqueue(new Callback<ResponseBody>() {
             @Override
@@ -302,6 +350,7 @@ public class MainActivity extends AppCompatActivity {
                         try {
                             //TODO: Use response.body().bytes() to handle thumbnail file image
                             Log.d(TAG, "Response body: " + response.body().string());
+                            papastampWebView.loadUrl("javascript:useCouponAndroid('"+shopId+"','"+couponNumber+"')");
                         } catch (IOException e) {
                         }
                     } else {
@@ -376,7 +425,7 @@ public class MainActivity extends AppCompatActivity {
 
         AlertDialog.Builder myDialogBuilder = new AlertDialog.Builder(this, R.style.stamp_dialog);
         TextView title = new TextView(this);
-        title.setText(R.string.dialog_title);
+        title.setText(stampNumber);
         title.setGravity(Gravity.CENTER);
         title.setTextColor(Color.RED);
         title.setTextSize(12);
@@ -463,6 +512,7 @@ public class MainActivity extends AppCompatActivity {
                     if(couponPushButton.isChecked()) {
                         couponPushButton.performClick();
                         Toast.makeText(MainActivity.this, "요청 시간이 초과되었습니다. 다시 요청하세요", Toast.LENGTH_SHORT).show();
+                        couponPushButton.setVisibility(View.GONE);
                     }
                     mScanning = false;
                     mBLEScanner.stopScan(mScanCouponCallback);
@@ -557,6 +607,7 @@ public class MainActivity extends AppCompatActivity {
                                             Toast.makeText(MainActivity.this, "스탬프 찍기 완료", Toast.LENGTH_SHORT).show();
                                             stampPushButton.performClick();
                                             stampPushButton.setVisibility(View.GONE);
+                                            stampNumberButton.setVisibility(View.GONE);
                                             Thread.sleep(100);
                                         } catch (InterruptedException e) {
                                             System.err.println(e.getMessage());

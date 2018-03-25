@@ -133,6 +133,8 @@ public class LoginActivity extends AppCompatActivity {
             Intent passIntent = new Intent(LoginActivity.this, MainActivity.class);
             passIntent.putExtra("pushCheck", "hide");
             passIntent.putExtra("shopCode", "");
+            passIntent.putExtra("shopCount", "1");
+            passIntent.putExtra("shopBeacon", "");
             passIntent.putExtra("userId", mUid);
             passIntent.putExtra("mLatitude", ""+mLatitude);
             passIntent.putExtra("mLongitude",""+mLongitude);
@@ -329,6 +331,7 @@ public class LoginActivity extends AppCompatActivity {
                             Intent papaMainIntent = new Intent (LoginActivity.this, MainActivity.class);
                             papaMainIntent.putExtra("pushCheck", "hide");
                             papaMainIntent.putExtra("shopId", "");
+                            papaMainIntent.putExtra("shopCount", "1");
                             papaMainIntent.putExtra("shopBeacon", "");
                             papaMainIntent.putExtra("userId", mUid);
                             papaMainIntent.putExtra("mLatitude", ""+mLatitude);
@@ -403,6 +406,7 @@ public class LoginActivity extends AppCompatActivity {
                                 Intent papaMainIntent = new Intent(LoginActivity.this, MainActivity.class);
                                 papaMainIntent.putExtra("pushCheck", "hide");
                                 papaMainIntent.putExtra("shopId", "");
+                                papaMainIntent.putExtra("shopCount", "1");
                                 papaMainIntent.putExtra("shopBeacon", "");
                                 papaMainIntent.putExtra("userId", mUid);
                                 papaMainIntent.putExtra("mLatitude", ""+mLatitude);
