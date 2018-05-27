@@ -19,38 +19,47 @@ public interface RestApiService {
 			"Content-Type: application/json"
 	})
 
-	@PUT("v1/user/updateLocation")
+	@PUT("user/v1/updateLocation")
 	Call<ResponseBody> updateLocation(@Body HttpRequestLocationInfo body);
 
-	@POST("v1/user/userLogin")
+	@POST("user/v1/userLogin")
 	Call<HttpResponseLoginInfo> userLoginCheck(@Body HttpRequestLoginInfo body);
 
-	@GET("v1/user/userCreate")
+	@GET("user/v1/userCreate")
 	Call<HttpResponseFirebaseToken> getAdminAuthToken();
 
-	@POST("v1/user/userInfo")
+	@POST("user/v1/userInfo")
 	Call<ResponseBody> insertUserInfo(@Body HttpRequestUserInfo body);
 
-	@POST("v1/stamp/update-stamp")
-	Call<ResponseBody> updateStamp(@Body HttpRequestStampInfo body);
+	@POST("user/v1/userLogin")
+	Call<ResponseBody> sendUserLoginToServer(@Body HttpRequestUserInfo body);
 
-	@PUT("v1/coupon/useCoupon")
-	Call<ResponseBody> updateCoupon(@Body HttpRequestStampInfo body);
+	@PUT("user/v1/accessToekn")
+	Call<ResponseBody> insertAccessToken(@Path("access_token") String accessToken);
 
-	@GET("v1/user/shopCodeToShopId/{shop_code}")
+	@POST("notification/v1/request-stamp")
+	Call<ResponseBody> requestStamp(@Body HttpRequestPushInfo body);
+
+	@POST("notification/v1/request-coupon")
+	Call<ResponseBody> usedCoupon(@Body HttpRequestPushInfo body);
+
+	@GET("user/v1/shopCodeToShopId/{shop_code}")
 	Call<HttpResponseShopInfo> selectShopCodeToShopId(@Path("shop_code") String shopCode);
 
-	@GET("v1/user/beaconToShopId/{beacon_code}")
+	@GET("user/v1/beaconToShopId/{beacon_code}")
 	Call<HttpResponseShopInfo> selectbeaconToShopId(@Path("beacon_code") String beaconCode);
+
+	@GET("user/v1/numberCheck")
+	Call<ResponseBody> getUserNumber(@Path("login_number") String userNumber);
+
 
 
 
 	@PUT("tablet/v1.0/insertStampHistory")
-	Call<ResponseBody> insertStampHistory(@Body HttpRequestStampInfo body);
+	Call<ResponseBody> insertStampHistory(@Body HttpRequestPushInfo body);
 
 
-	@GET("main")
-	Call<ResponseBody> getMain();
+
 
 	@POST("notification/v0.1/users/{uid}")
 	Call<ResponseBody> sendNotification(@Path("uid") String uid,

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:weightSum="10"
+    tools:context="com.subin.papastamp.TermsActivity">
+
+    <RelativeLayout
+        android:id="@+id/terms_title_ly"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="24dp"
+        android:layout_weight="1"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="서비스 이용약관 동의 확인"
+            android:textSize="16sp" />
+    </RelativeLayout>
+
+    <LinearLayout
+        android:id="@+id/ly_terms_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginEnd="40dp"
+        android:layout_marginStart="40dp"
+        android:layout_weight="8"
+        android:orientation="vertical"
+        android:weightSum="9">
+
+        <RelativeLayout
+            android:id="@+id/ly_terms_all"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <CheckBox
+                android:id="@+id/cb_terms_all"
+                android:layout_width="48dp"
+                android:layout_height="48dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_toRightOf="@+id/cb_terms_all"
+                android:gravity="center"
+                android:text="전체 약관 동의하기"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/ly_terms_private"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="4"
+            android:orientation="vertical"
+            android:weightSum="4">
+
+            <ScrollView
+                android:id="@+id/tv_terms_private"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="3">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="0dp"
+                    android:padding="10dp"
+                    android:text="@string/terms_private" />
+            </ScrollView>
+
+            <View
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="0.3" />
+
+            <CheckBox
+                android:id="@+id/cb_terms_private"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="0.7"
+                android:text="파파스탬프 이용약관 동의"
+                android:textSize="14sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/ly_terms_gps"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="4"
+            android:orientation="vertical"
+            android:weightSum="4">
+
+            <ScrollView
+                android:id="@+id/tv_terms_gps"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="3">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="0dp"
+                    android:padding="10dp"
+                    android:text="@string/terms_gps" />
+            </ScrollView>
+
+            <View
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="0.3" />
+
+            <CheckBox
+                android:id="@+id/cb_terms_gps"
+                android:layout_width="wrap_content"
+                android:layout_height="0dp"
+                android:layout_weight="0.7"
+                android:text="개인정보수집 이용약관 동의"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginEnd="40dp"
+        android:layout_marginTop="10dp"
+        android:layout_weight="1">
+
+        <Button
+            android:id="@+id/btn_terms_next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:background="@android:color/transparent"
+            android:text="다음으로"
+            android:textSize="14sp" />
+    </RelativeLayout>
+
+</LinearLayout>

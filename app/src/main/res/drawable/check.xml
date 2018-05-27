@@ -3,8 +3,8 @@
     <!-- When selected, use grey -->
     <item android:drawable="@drawable/stop"
         android:state_checked="true" />
-    <!-- When not selected, use white-->
+    <!-- When not selected, use white
     <item android:drawable="@drawable/request"
-        android:state_checked="false"/>
+        android:state_checked="false"/>-->
 
 </selector>

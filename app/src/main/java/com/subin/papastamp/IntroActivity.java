@@ -14,7 +14,7 @@ import android.widget.ToggleButton;
 import com.subin.papastamp.common.Constants;
 
 public class IntroActivity extends Activity implements ViewPager.OnPageChangeListener {
-	private final String TAG = "[Intro Activity] ";
+	private final String TAG = "[Intro Activity] : ";
 	private IntroActivity mActivity;
 
 	public IntroActivity() {

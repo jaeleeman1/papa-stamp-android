@@ -1,34 +1,31 @@
 package com.subin.papastamp;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.Button;
-import android.widget.TextView;
+import android.widget.EditText;
 import android.widget.Toast;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.iid.FirebaseInstanceId;
+import com.subin.papastamp.common.Algorithm;
 import com.subin.papastamp.common.Constants;
+import com.subin.papastamp.model.ConfigManager;
 import com.subin.papastamp.model.LocationManager;
-
 import com.subin.papastamp.model.UserManager;
 import com.subin.papastamp.model.http.HttpClientManager;
 import com.subin.papastamp.model.http.HttpRequestLocationInfo;
@@ -37,35 +34,47 @@ import com.subin.papastamp.model.http.HttpRequestUserInfo;
 import com.subin.papastamp.model.http.HttpResponseFirebaseToken;
 import com.subin.papastamp.model.http.HttpResponseLoginInfo;
 
+import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class LoginActivity extends AppCompatActivity {
-    private final String TAG = "[Login Activity] : ";
-    private LoginActivity mActivity;
-    private EditText emailInput, passwordInput, passwordConfirmInput;
+import static com.subin.papastamp.common.Constants.CONFIG_KEY_AES_KEY;
+
+public class SignupActivity extends AppCompatActivity {
+    private final String TAG = "[Signup Activity] : ";
+    private SignupActivity mActivity;
+    private EditText emailInput, passwordInput, passwordConfirmInput, phoneNumberInput, authNumberInput;
     private SharedPreferences pref;
+    private SharedPreferences auth;
     private boolean needSkip;
-    private Button registrationEmail;
-    private TextView signupText;
-    private TextView findPassword;
+    private String authCode;
+    private Button authBtn, registrationBtn;
     private String emailInputStr;
     private String passwordInputStr;
+    private String passwordConfirmInputStr;
+    private String phoneNumber;
+    private String termsCheck;
+    private String resultCheck = "";
     private String mUid;
     private String fUid;
     private FirebaseAuth mAuth;
+    private FirebaseAuth.AuthStateListener mAuthListener;
     private Context mContext;
     private UserManager userManager;
     private LocationManager locationManager;
+    private ProgressDialog waitDialog;
 
     private final double INITIAL_LATITUDE = -181;
     private final double INITIAL_LONGITUDE = -181;
     private double mLatitude = INITIAL_LATITUDE;
     private double mLongitude = INITIAL_LONGITUDE;
 
-    public LoginActivity() {
+    public SignupActivity() {
         mContext = this;
         mActivity = this;
     }
@@ -73,16 +82,17 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+        setContentView(R.layout.activity_signup);
 
         mAuth = FirebaseAuth.getInstance();
 
         emailInput = (EditText) findViewById(R.id.emailInput);
         passwordInput = (EditText) findViewById(R.id.passwordInput);
         passwordConfirmInput = (EditText) findViewById(R.id.passwordConfirmInput);
-        registrationEmail = (Button) findViewById(R.id.regButton);
-        signupText = (TextView) findViewById(R.id.signup_text);
-//        findPassword = (TextView) findViewById(R.id.find_password);
+        phoneNumberInput = (EditText) findViewById(R.id.phoneNumberInput);
+        authNumberInput = (EditText) findViewById(R.id.authNumberInput);
+        authBtn = (Button) findViewById(R.id.authBtn);
+        registrationBtn = (Button) findViewById(R.id.regButton);
 
         //Init userManager
         userManager = UserManager.getInstance();
@@ -95,6 +105,11 @@ public class LoginActivity extends AppCompatActivity {
         if (locationManager.getContext() == null) {
             locationManager.init(mContext);
         }
+
+        Intent termsIntent = getIntent();
+
+        termsCheck = termsIntent.getExtras().getString("termsCheck");
+        Log.d(TAG, "pushCheck: " + termsCheck);
     }
 
     @Override
@@ -104,28 +119,24 @@ public class LoginActivity extends AppCompatActivity {
         mUid = userManager.getUid();
         Log.d(TAG, "Get user id : " + mUid);
 
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser != null) {
-            fUid =  currentUser.getUid();
-            Log.d(TAG, "firebase id : " + fUid);
-        }
-
         mLatitude = locationManager.getLatitude();
         mLongitude = locationManager.getLongitude();
         Log.d(TAG, "Get location latitude : " + mLatitude);
         Log.d(TAG, "Get location longitude : " + mLongitude);
 
-        //Send to server of user location
-        sendLocationToServer(mLatitude, mLongitude);
-
-        //Check user login info
         pref = mActivity.getSharedPreferences(Constants.PREFERENCE_USER, Context.MODE_PRIVATE);
         needSkip = pref.getBoolean(Constants.PREFERENCE_USER_SKIP, false);
+        auth = mActivity.getSharedPreferences(Constants.PREFERENCE_AUTH, Context.MODE_PRIVATE);
 
-        if ((mUid.equals(fUid)) && needSkip) {
+        authCreate();
+
+        //Send to server of user location
+//        sendLocationToServer(mLatitude, mLongitude);
+
+/*        if ((mUid.equals(fUid)) && needSkip) {
             String registrationToken = FirebaseInstanceId.getInstance().getToken();
             sendAccessTokenToServer(registrationToken);
-            Intent passIntent = new Intent(LoginActivity.this, MainActivity.class);
+            Intent passIntent = new Intent(SignupActivity.this, MainActivity.class);
             passIntent.putExtra("pushCheck", "hide");
             passIntent.putExtra("shopCode", "");
             passIntent.putExtra("shopBeacon", "");
@@ -134,28 +145,8 @@ public class LoginActivity extends AppCompatActivity {
             passIntent.putExtra("mLongitude",""+mLongitude);
             startActivity(passIntent);
             finish();
-        }
+        }*/
 
-        registrationEmail.setBackgroundResource(R.drawable.login_button);
-
-        signupText.setText("회원가입");
-        signupText.setOnClickListener(new View.OnClickListener() {
-            public void  onClick(View v) {
-                Intent termsItntent = new Intent(LoginActivity.this, TermsActivity.class);
-                startActivity(termsItntent);
-                finish();
-            }
-        });
-
-        registrationEmail.setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                emailInputStr = emailInput.getText().toString();
-                passwordInputStr = passwordInput.getText().toString();
-
-                userSignIn();
-            }
-        });
 
         //input phone number
         emailInput.addTextChangedListener(new TextWatcher() {
@@ -202,11 +193,12 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 String password = passwordInput.getText().toString();
+                String passwordConfirm = passwordConfirmInput.getText().toString();
 
-                if (isValidPasswd(password)) {
-                    passwordInput.setBackgroundResource(R.drawable.edit_bg);
+                if (!password.equals(passwordConfirm)) {
+                    passwordConfirmInput.setBackgroundResource(R.drawable.edit_wrong_bg);
                 } else {
-                    passwordInput.setBackgroundResource(R.drawable.edit_wrong_bg);
+                    passwordConfirmInput.setBackgroundResource(R.drawable.edit_bg);
                 }
             }
 
@@ -214,9 +206,193 @@ public class LoginActivity extends AppCompatActivity {
             public void afterTextChanged(Editable s) {
             }
         });
+
+        //password confirm check
+        passwordConfirmInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String password = passwordInput.getText().toString();
+                String passwordConfirm = passwordConfirmInput.getText().toString();
+
+                if (!password.equals(passwordConfirm)) {
+                    passwordConfirmInput.setBackgroundResource(R.drawable.edit_wrong_bg);
+                } else {
+                    passwordConfirmInput.setBackgroundResource(R.drawable.edit_bg);
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
+
+        //password confirm check
+        phoneNumberInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                phoneNumber = phoneNumberInput.getText().toString();
+                String regEx = "(\\d{3})(\\d{4})(\\d{4})";
+                if(Pattern.matches(regEx, phoneNumber))
+                    phoneNumberInput.setText(phoneNumber.replaceAll(regEx, "$1-$2-$3"));
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
+
+        authBtn.setOnClickListener(new View.OnClickListener() {
+            public void  onClick(View v) {
+                phoneNumber = phoneNumberInput.getText().toString();
+
+                if(phoneNumber.length() == 0) {
+                    Toast.makeText(SignupActivity.this, "핸드폰 번호를 입력하세요!!", Toast.LENGTH_LONG).show();
+                }
+
+                if(phoneNumber.length() < 13) {
+                    Toast.makeText(SignupActivity.this, "올바른 핸드폰 번호를 입력하세요!!", Toast.LENGTH_LONG).show();
+                }else {
+
+//                    if(phoneNumberCheck(phoneNumber)) {
+                        HttpClientManager httpClientManager = HttpClientManager.getInstance();
+                        httpClientManager.initHeader();
+                        Call<ResponseBody> call = httpClientManager.getUserNumber(phoneNumber);
+                        call.enqueue(new Callback<ResponseBody>() {
+                            @Override
+                            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                                //Log.d(TAG, "REST API request OK");
+                                Log.d(TAG, "Response: " + response);
+                                Log.d(TAG, "Response header: " + response.headers());
+
+                                if (response.code() == 200) {
+                                    Log.d(TAG, "REST API response OK");
+                                    if (response.body() != null) {
+
+                                    } else {
+                                        Log.d(TAG, "REST API response failed");
+                                    }
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                                Log.d(TAG, "REST API request failed");
+                            }
+                        });
+                    /*}else {
+                        Toast.makeText(SignupActivity.this, "올바른 핸드폰 번호를 입력하세요!!", Toast.LENGTH_LONG).show();
+                    }*/
+                }
+            }
+        });
+
+
+        registrationBtn.setOnClickListener(new Button.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                emailInputStr = emailInput.getText().toString();
+                passwordInputStr = passwordInput.getText().toString();
+
+                if (signInUpCheck(emailInputStr, passwordInputStr)) {
+                    userSignUp();
+                }
+            }
+        });
     }
 
-    private void userSignIn() {
+    private boolean phoneNumberCheck(String number) {
+        ConfigManager configManager = ConfigManager.getInstance();
+        configManager.init(mContext);
+        String aesKey = configManager.getProperty(CONFIG_KEY_AES_KEY);
+
+        Algorithm algorithm = new Algorithm();
+
+        number = number.replaceAll("-", "");
+        number = "082" + number;
+
+        String checkUid = "";
+        try {
+            checkUid = algorithm.encrypt(number, aesKey);
+            Log.d(TAG, "Check user id : " + checkUid);
+        } catch (Exception e) {
+            Log.d(TAG, "Check user id error");
+            e.printStackTrace();
+        }
+
+        if(mUid.equals(checkUid)){
+            return true;
+        }else {
+            return false;
+        }
+    }
+
+    private boolean signInUpCheck(String email, String password) {
+        Log.i(TAG, "Login Check User Info");
+
+        if ("".equals(emailInputStr)) {
+            Toast.makeText(SignupActivity.this, "E-mail을 입력하세요", Toast.LENGTH_LONG).show();
+            return false;
+        } else {
+            if (!isValidEmail(emailInputStr)) {
+                Toast.makeText(SignupActivity.this, "올바른 E-mail을 입력하세요", Toast.LENGTH_LONG).show();
+            } else {
+                if ("".equals(passwordInputStr)) {
+                    Toast.makeText(SignupActivity.this, "패스워드를 입력하세요", Toast.LENGTH_LONG).show();
+                    return false;
+                } else {
+                    if (!isValidPasswd(passwordInputStr)) {
+                        Toast.makeText(SignupActivity.this, "패스워드는 6자 이상으로 설정하세요(한글 미포함)", Toast.LENGTH_LONG).show();
+                    } else {
+                        passwordConfirmInputStr = passwordConfirmInput.getText().toString();
+
+                        if ("".equals(passwordConfirmInputStr)) {
+                            Toast.makeText(SignupActivity.this, "패스워드를 한번 더 입력하세요", Toast.LENGTH_LONG).show();
+                            return false;
+                        } else {
+                            if(passwordInputStr.equals(passwordConfirmInputStr)){
+                                //Check auth code
+                                authCode = auth.getString(Constants.PREFERENCE_AUTH_CODE, "");
+                                if("".equals(authNumberInput)) {
+                                    Toast.makeText(SignupActivity.this, "인증번호를 입력하세요", Toast.LENGTH_LONG).show();
+                                    return false;
+                                }else {
+                                    if(authCode.equals(authNumberInput)) {
+                                        return true;
+                                    } else {
+                                        Toast.makeText(SignupActivity.this, "올바른 인증번호를 입력하세요", Toast.LENGTH_LONG).show();
+                                        return false;
+                                    }
+                                }
+                            }else {
+                                Toast.makeText(SignupActivity.this, "동일한 패스워드를 입력하세요", Toast.LENGTH_LONG).show();
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private void authCreate() {
+        Random random = new Random();
+        String code = String.format("%04d", random.nextInt(10000));
+        Log.i(TAG, "AUTH CODE : " + code);
+        SharedPreferences.Editor authEdit = auth.edit();
+        authEdit.putString(Constants.PREFERENCE_AUTH_CODE, code);
+        authEdit.commit();
+    }
+
+    /*private void userSignIn() {
         Log.i(TAG, "Send check the user info");
         final ProgressDialog progressDialog = ProgressDialog.show(mActivity,
                 "Please wait...", "Progressing...", true);
@@ -248,7 +424,7 @@ public class LoginActivity extends AppCompatActivity {
                             edit.putBoolean(Constants.PREFERENCE_USER_SKIP, true);
                             edit.commit();
 
-                            Intent papaMainIntent = new Intent (LoginActivity.this, MainActivity.class);
+                            Intent papaMainIntent = new Intent (SignupActivity.this, MainActivity.class);
                             papaMainIntent.putExtra("pushCheck", "hide");
                             papaMainIntent.putExtra("shopId", "");
                             papaMainIntent.putExtra("shopBeacon", "");
@@ -261,19 +437,19 @@ public class LoginActivity extends AppCompatActivity {
                             startActivity(papaMainIntent);
                             finish();
 
-                            Toast.makeText(LoginActivity.this, "Papa Stamp에 오신걸 환영합니다.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(SignupActivity.this, "Papa Stamp에 오신걸 환영합니다.", Toast.LENGTH_LONG).show();
                         }else {
                             progressDialog.dismiss();
-                            Toast.makeText(LoginActivity.this, "패스워드를 확인 바랍니다.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(SignupActivity.this, "패스워드를 확인 바랍니다.", Toast.LENGTH_LONG).show();
                         }
                     }else {
                         progressDialog.dismiss();
-                        Toast.makeText(LoginActivity.this, "E-mail을 확인 바랍니다.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(SignupActivity.this, "E-mail을 확인 바랍니다.", Toast.LENGTH_LONG).show();
                     }
                 } else {
                     Log.d(TAG, "REST API response failed");
                     progressDialog.dismiss();
-                    Toast.makeText(LoginActivity.this, "E-mail 및 Password를 확인 바랍니다.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(SignupActivity.this, "E-mail 및 Password를 확인 바랍니다.", Toast.LENGTH_LONG).show();
                 }
             }
 
@@ -283,6 +459,54 @@ public class LoginActivity extends AppCompatActivity {
                 progressDialog.dismiss();
             }
         });
+    }*/
+
+    private void userSignUp() {
+        Log.i(TAG, "send Location to server");
+        AlertDialog.Builder alert_confirm = new AlertDialog.Builder(SignupActivity.this);
+        alert_confirm.setMessage("입력하신 내용으로 등록 하시겠습니까??").setCancelable(false).setPositiveButton("확인",
+            new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    final ProgressDialog progressDialog = ProgressDialog.show(mActivity,
+                            "Please wait...", "Progressing...", true);
+
+                    Log.i(TAG, "Insert user info");
+
+                    //Create firebase user id
+                    createFirebaseUserId();
+
+                    //Check user login info
+                    SharedPreferences.Editor edit = pref.edit();
+                    edit.putBoolean(Constants.PREFERENCE_USER_SKIP, true);
+                    edit.commit();
+
+                    progressDialog.dismiss();
+
+                    Intent papaMainIntent = new Intent(SignupActivity.this, MainActivity.class);
+                    papaMainIntent.putExtra("pushCheck", "hide");
+                    papaMainIntent.putExtra("shopId", "");
+                    papaMainIntent.putExtra("shopBeacon", "");
+                    papaMainIntent.putExtra("userId", mUid);
+                    papaMainIntent.putExtra("mLatitude", ""+mLatitude);
+                    papaMainIntent.putExtra("mLongitude",""+mLongitude);
+                    Log.i(TAG, "user id : " + mUid);
+                    Log.i(TAG, "latitude : " + mLatitude);
+                    Log.i(TAG, "longitude : " + mLongitude);
+                    startActivity(papaMainIntent);
+                    finish();
+
+                    Toast.makeText(SignupActivity.this, "Papa Stamp에 오신걸 환영합니다.", Toast.LENGTH_LONG).show();
+                }
+            }).setNegativeButton("취소",
+            new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    return;
+                }
+            });
+        AlertDialog alert = alert_confirm.create();
+        alert.show();
     }
 
     private void createFirebaseUserId() {
@@ -304,7 +528,7 @@ public class LoginActivity extends AppCompatActivity {
                         Log.d(TAG, "Response body: " + response.body().customToken);
                         String customToken = response.body().customToken;
                         customAccount(customToken);
-                        sendUserLoginToServer(customToken, emailInputStr, passwordInputStr);
+                        sendUserInfoToServer(customToken, emailInputStr, passwordInputStr, termsCheck, mLatitude, mLongitude);
                     } else {
                         Log.d(TAG, "REST API response failed");
                     }
@@ -330,14 +554,14 @@ public class LoginActivity extends AppCompatActivity {
                     } else {
                         // If sign in fails, display a message to the user.
                         Log.w(TAG, "signInWithCustomToken:failure", task.getException());
-                        Toast.makeText(LoginActivity.this, "Authentication failed.",
+                        Toast.makeText(SignupActivity.this, "Authentication failed.",
                                 Toast.LENGTH_SHORT).show();
                     }
                 }
             });
     }
 
-    private void sendLocationToServer(Double latitude, Double longitude) {
+    /*private void sendLocationToServer(Double latitude, Double longitude) {
         Log.i(TAG, "Send Location to server");
 
         HttpClientManager httpClientManager = HttpClientManager.getInstance();
@@ -365,14 +589,14 @@ public class LoginActivity extends AppCompatActivity {
                 Log.d(TAG, "REST API request failed(sendLocationToServer)");
             }
         });
-    }
+    }*/
 
-    private void sendUserLoginToServer(String accessToken, String userEmail, String userPassword) {
+    private void sendUserInfoToServer(String accessToken, String userEmail, String userPassword, String terms, Double lat, Double lng) {
         Log.i(TAG, "Send user info to server");
         HttpClientManager httpClientManager = HttpClientManager.getInstance();
         httpClientManager.initHeader();
-        HttpRequestUserInfo body = new HttpRequestUserInfo(accessToken, userEmail, userPassword);
-        Call<ResponseBody> call = httpClientManager.sendUserLoginToServer(body);
+        HttpRequestUserInfo body = new HttpRequestUserInfo(accessToken, userEmail, userPassword, terms, lat, lng);
+        Call<ResponseBody> call = httpClientManager.insertUserInfo(body);
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -396,7 +620,7 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    private void sendAccessTokenToServer(String accessToken) {
+/*    private void sendAccessTokenToServer(String accessToken) {
         Log.i(TAG, "Send user info to server");
         HttpClientManager httpClientManager = HttpClientManager.getInstance();
         httpClientManager.initHeader();
@@ -422,7 +646,7 @@ public class LoginActivity extends AppCompatActivity {
                 Log.d(TAG, "REST API request failed(sendUserInfoToServer)");
             }
         });
-    }
+    }*/
 
     private boolean isValidEmail(String target) {
         if (target == null || TextUtils.isEmpty(target)) {

@@ -6,10 +6,10 @@
     android:layout_height="match_parent">
     <ImageView
         android:id="@+id/image_view"
-        android:layout_width="272dp"
-        android:layout_height="272dp"
+        android:layout_width="fill_parent"
+        android:layout_height="322dp"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="102dp"/>
+        android:layout_marginTop="52dp"/>
     <TextView
         android:id="@+id/title_view"
         android:layout_width="wrap_content"
@@ -21,7 +21,7 @@
         android:layout_marginTop="46dp"
         android:gravity="center"
         android:textAlignment="center"
-        android:text="ssup!"/>
+        android:text="스탬프 및 쿠폰 적립"/>
     <TextView
         android:id="@+id/subtitle_view"
         android:layout_width="wrap_content"
@@ -31,7 +31,7 @@
         android:layout_marginTop="8dp"
         android:textSize="16sp"
         android:textColor="#f2252c49"
-        android:text="Try ssup to friends nearby\nand have fun"
+        android:text="이제부터 파파스탬프로 편리하게 관리해 보세요!"
         android:lineSpacingExtra="4sp"
         android:gravity="center"
         android:textAlignment="center"/>

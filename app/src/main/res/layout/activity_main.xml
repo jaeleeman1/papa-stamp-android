@@ -27,29 +27,13 @@
         android:id="@+id/pushLinear">
 
         <ToggleButton
-            android:id="@+id/stampPushButton"
+            android:id="@+id/pushButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/check"
             android:layout_weight="5"
             android:text="StampToggleButton"
-            android:textOff="스탬프 요청"
-            android:textOn="중 지"
-            style="@style/request_button_text"/>
-
-        <Spinner
-            android:id="@+id/stampNumber"
-            android:layout_width="100dp"
-            android:layout_height="wrap_content" />
-
-        <ToggleButton
-            android:id="@+id/couponPushButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/check"
-            android:layout_weight="5"
-            android:text="StampToggleButton"
-            android:textOff="쿠폰 사용 요청"
+            android:visibility="gone"
             android:textOn="중 지"
             style="@style/request_button_text"/>
     </LinearLayout>

@@ -12,7 +12,11 @@ public class Constants {
 
 	//login
 	public static final String PREFERENCE_USER = "LoginActivity.USER_PREF";
-	public static final String PREFERENCE_USER_SKIP = "IntroActivity.USER_PREF_SKIP";
+	public static final String PREFERENCE_USER_SKIP = "LoginActivity.USER_PREF_SKIP";
+
+	//signup
+	public static final String PREFERENCE_AUTH = "SignupActivity.AUTH_PREF";
+	public static final String PREFERENCE_AUTH_CODE = "SignupActivity.AUTH_CODE";
 
 	//beacon push message
 	public static final int BEACON_PUSH_MSG = 1001001;

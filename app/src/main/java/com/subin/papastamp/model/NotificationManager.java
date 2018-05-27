@@ -29,7 +29,7 @@ public class NotificationManager {
 		}
 	}
 
-	private static final String TAG = "SSUP_NotificationManage";
+	private static final String TAG = "NotificationManage";
 
 	public NotificationManager() {}
 

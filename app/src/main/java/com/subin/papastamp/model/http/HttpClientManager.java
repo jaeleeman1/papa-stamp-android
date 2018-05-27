@@ -89,6 +89,42 @@ public class HttpClientManager {
 		return service.insertUserInfo(body);
 	}
 
+	public Call<ResponseBody> sendUserLoginToServer(HttpRequestUserInfo body) {
+		Log.d(TAG, "Papastamp getAdminAuthToken() was called");
+
+		if (mAccessUid == null || mAccessUid.isEmpty()) {
+			return null;
+		}
+
+		Retrofit retrofit = new Retrofit.Builder()
+				.baseUrl(mBaseUrl)
+				.addConverterFactory(GsonConverterFactory.create())
+				.client(mHttpClient)
+				.build();
+
+		RestApiService service = retrofit.create(RestApiService.class);
+
+		return service.sendUserLoginToServer(body);
+	}
+
+	public Call<ResponseBody> insertAccessToken(String accessToken) {
+		Log.d(TAG, "Papastamp getAdminAuthToken() was called");
+
+		if (mAccessUid == null || mAccessUid.isEmpty()) {
+			return null;
+		}
+
+		Retrofit retrofit = new Retrofit.Builder()
+				.baseUrl(mBaseUrl)
+				.addConverterFactory(GsonConverterFactory.create())
+				.client(mHttpClient)
+				.build();
+
+		RestApiService service = retrofit.create(RestApiService.class);
+
+		return service.insertAccessToken(accessToken);
+	}
+
 	public Call<ResponseBody> updateLocation(HttpRequestLocationInfo body) {
 		Log.d(TAG, "updateLocation() was called");
 
@@ -127,7 +163,7 @@ public class HttpClientManager {
 		return service.userLoginCheck(body);
 	}
 
-	public Call<ResponseBody> insertStampHistory(HttpRequestStampInfo body) {
+	public Call<ResponseBody> insertStampHistory(HttpRequestPushInfo body) {
 		Log.d(TAG, "Papastamp getMapMain() was called");
 
 		if (mAccessUid == null || mAccessUid.isEmpty()) {
@@ -181,7 +217,7 @@ public class HttpClientManager {
 		return service.selectbeaconToShopId(beaconCode);
 	}
 
-	public Call<ResponseBody> updateStamp(HttpRequestStampInfo body) {
+	public Call<ResponseBody> requestStamp(HttpRequestPushInfo body) {
 		Log.d(TAG, "Papastamp getMapMain() was called");
 
 		if (mAccessUid == null || mAccessUid.isEmpty()) {
@@ -196,10 +232,10 @@ public class HttpClientManager {
 
 		RestApiService service = retrofit.create(RestApiService.class);
 
-		return service.updateStamp(body);
+		return service.requestStamp(body);
 	}
 
-	public Call<ResponseBody> updateCoupon(HttpRequestStampInfo body) {
+	public Call<ResponseBody> usedCoupon(HttpRequestPushInfo body) {
 		Log.d(TAG, "Papastamp getMapMain() was called");
 
 		if (mAccessUid == null || mAccessUid.isEmpty()) {
@@ -214,7 +250,7 @@ public class HttpClientManager {
 
 		RestApiService service = retrofit.create(RestApiService.class);
 
-		return service.updateCoupon(body);
+		return service.usedCoupon(body);
 	}
 
 	public Call<ResponseBody> sendNotification(String uid, HttpRequestNotificationInfo body) {
@@ -235,324 +271,21 @@ public class HttpClientManager {
 		return service.sendNotification(uid, body);
 	}
 
-	/*public Call<ResponseBody> addAccount(HttpRequestAccountInfo body) {
-		Log.d(TAG, "HttpClientManager.addAccount() was called");
-
-		if (mAccessPidToken == null || mAccessPidToken.isEmpty())
-		{
-			return null;
-		}
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.addConverterFactory(GsonConverterFactory.create())
-				.client(mHttpClient)
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		return service.addAccount(body);
-	}
-
-	public Call<ResponseBody> updateAccessToken() {
-		Log.d(TAG, "updateAccessToken() enter");
-
-		if (mIdToken == null || mIdToken.isEmpty())
-		{
-			return null;
-		}
-		if (mAid == null || mAid.isEmpty())
-		{
-			return null;
-		}
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.addConverterFactory(GsonConverterFactory.create())
-				.client(mHttpClient)
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		return service.updateAccessToken();
-	}
-
-	public Call<ResponseBody> addProfile(RequestBody nickname, MultipartBody.Part thumbnail,
-			RequestBody expression, RequestBody city, RequestBody gender) {
-		Log.d(TAG, "HttpClientManager.addProfile() was called");
-
-		if (mIdToken == null || mIdToken.isEmpty())
-		{
-			return null;
-		}
-		if (mAid == null || mAid.isEmpty())
-		{
-			return null;
-		}
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.client(mHttpClient)
-				.addConverterFactory(GsonConverterFactory.create())
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		return service.addProfile(nickname, thumbnail, expression, city, gender);
-	}
-
-	public Call<ResponseBody> updateProfileInfo(String uid, HttpRequestProfileInfo body) {
-		Log.d(TAG, "HttpClientManager.updateProfileInfo() was called");
-
-		if (mIdToken == null || mIdToken.isEmpty())
-			return null;
-		if (mAid == null || mAid.isEmpty())
-			return null;
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.client(mHttpClient)
-				.addConverterFactory(GsonConverterFactory.create())
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		return service.updateProfileInfo(uid, body);
-	}
-
-	public Call<ResponseBody> updateProfileThumbnail(String uid, MultipartBody.Part thumbnail) {
-		Log.d(TAG, "HttpClientManager.updateProfileThumbnail() was called");
-
-		if (mIdToken == null || mIdToken.isEmpty())
-			return null;
-		if (mAid == null || mAid.isEmpty())
-			return null;
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.client(mHttpClient)
-				.addConverterFactory(GsonConverterFactory.create())
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		return service.updateProfileThumbnail(uid, thumbnail);
-	}
-
-	public Call<List<HttpResponseProfileInfo>> getProfileInfo(String uid) {
-		Log.d(TAG, "HttpClientManager.getProfileInfo() was called");
-
-		if (mIdToken == null || mIdToken.isEmpty())
-			return null;
-		if (mAid == null || mAid.isEmpty())
-			return null;
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.client(mHttpClient)
-				.addConverterFactory(GsonConverterFactory.create())
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		return service.getProfileInfo(uid);
-	}
-
-	public Call<ResponseBody> getProfileThumbnail(String uid) {
-		Log.d(TAG, "HttpClientManager.getProfileThumbnail() was called");
-
-		if (mIdToken == null || mIdToken.isEmpty())
-			return null;
-		if (mAid == null || mAid.isEmpty())
-			return null;
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.client(mHttpClient)
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		return service.getProfileThumbnail(uid);
-	}
-
-	public Call<ResponseBody> updateLocation(String uid, HttpRequestLocationInfo body) {
-		Log.d(TAG, "updateLocation() was called");
-
-		if (mIdToken == null || mIdToken.isEmpty()) {
-			Log.e(TAG, "Access token is invalid");
-			return null;
-		}
-		if (mAid == null || mAid.isEmpty()) {
-			Log.e(TAG, "AID is invalid");
-			return null;
-		}
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.client(mHttpClient)
-				.addConverterFactory(GsonConverterFactory.create())
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		//return service.updateLocation(uid, Double.toString(latitude), Double.toString(longitude));
-		return service.updateLocation(uid, body);
-	}
-
-	public Call<List<HttpResponseLocationInfo>> getFriendsNearby(Double latitude, Double longitude, Integer limit) {
-		Log.d(TAG, "getFriendsNearby() was called");
-
-		if (mIdToken == null || mIdToken.isEmpty())
-			return null;
-		if (mAid == null || mAid.isEmpty())
-			return null;
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.client(mHttpClient)
-				.addConverterFactory(GsonConverterFactory.create())
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		String location = "latitude=" + Double.toString(latitude) + ",longitude=" + Double.toString(longitude);
-
-		return service.getFriendsNearby(location, Integer.toString(limit));
-	}
-
-	public Call<ResponseBody> sendNotification(String uid, HttpRequestNotificationInfo body) {
+	public Call<ResponseBody> getUserNumber(String userNumber) {
 		Log.d(TAG, "sendNotification() enter");
 
-		if (mIdToken == null || mIdToken.isEmpty())
-			return null;
-		if (mAid == null || mAid.isEmpty())
-			return null;
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.client(mHttpClient)
-				.addConverterFactory(GsonConverterFactory.create())
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		return service.sendNotification(uid, body);
-	}
-
-	public Call<ResponseBody> addContactList(String uid, HttpRequestContactInfo body) {
-		Log.d(TAG, "addContactList() enter");
-
-		if (mIdToken == null || mIdToken.isEmpty())
-			return null;
-		if (mAid == null || mAid.isEmpty())
-			return null;
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.client(mHttpClient)
-				.addConverterFactory(GsonConverterFactory.create())
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		return service.addContactList(uid, body);
-	}
-
-	public Call<List<HttpResponseContactInfo>> getCandidateFriends() {
-		Log.d(TAG, "getCandidateFriends() enter");
-
-		if (mIdToken == null || mIdToken.isEmpty())
-			return null;
-		if (mAid == null || mAid.isEmpty())
-			return null;
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.client(mHttpClient)
-				.addConverterFactory(GsonConverterFactory.create())
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		return service.getCandidateFriends();
-	}
-
-	public Call<List<HttpResponseContactInfo>> getFriends() {
-		Log.d(TAG, "getFriends() enter");
-
-		if (mIdToken == null || mIdToken.isEmpty())
-			return null;
-		if (mAid == null || mAid.isEmpty())
-			return null;
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.client(mHttpClient)
-				.addConverterFactory(GsonConverterFactory.create())
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		return service.getFriends();
-	}
-
-	public Call<ResponseBody> addFriend(String uid) {
-		Log.d(TAG, "addFriend() enter");
-
-		if (mIdToken == null || mIdToken.isEmpty())
-			return null;
-		if (mAid == null || mAid.isEmpty())
-			return null;
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.client(mHttpClient)
-				.addConverterFactory(GsonConverterFactory.create())
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		return service.addFriend(uid);
-	}
-
-	public Call<ResponseBody> addFriendsList(HttpRequestContactInfo body) {
-		Log.d(TAG, "addFriendsList() enter");
-
-		if (mIdToken == null || mIdToken.isEmpty())
-			return null;
-		if (mAid == null || mAid.isEmpty())
-			return null;
-
-		Retrofit retrofit = new Retrofit.Builder()
-				.baseUrl(mBaseUrl)
-				.client(mHttpClient)
-				.addConverterFactory(GsonConverterFactory.create())
-				.build();
-
-		RestApiService service = retrofit.create(RestApiService.class);
-
-		return service.addFriendsList(body);
-	}
-
-	public Call<ResponseBody> updateUserStatus(HttpRequestStatusInfo body) {
-		Log.d(TAG, "updateUserStatus() enter");
-
-		if (mIdToken == null || mIdToken.isEmpty())	{
-			return null;
-		}
-		if (mAid == null || mAid.isEmpty()) {
+		if (mAccessUid == null || mAccessUid.isEmpty()) {
 			return null;
 		}
 
 		Retrofit retrofit = new Retrofit.Builder()
 				.baseUrl(mBaseUrl)
-				.addConverterFactory(GsonConverterFactory.create())
 				.client(mHttpClient)
+				.addConverterFactory(GsonConverterFactory.create())
 				.build();
 
 		RestApiService service = retrofit.create(RestApiService.class);
 
-		return service.updateUserStatus(body);
-	}*/
+		return service.getUserNumber(userNumber);
+	}
 }

@@ -15,6 +15,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.GetTokenResult;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.subin.papastamp.common.Algorithm;
 
@@ -26,12 +27,9 @@ import static com.subin.papastamp.common.Constants.CONFIG_KEY_AES_KEY;
 public class UserManager {
 	private static UserManager mInstance;
 	private Context mContext;
-	private FirebaseAuth mAuth;
-	private FirebaseAuth.AuthStateListener mAuthListener;
 	private static String mPid = null;
 	private String mUid;
-	private String mFid;
-	private String mAccessToken;
+
 	private static final String TAG = "[UserManager] ";
 
 	private UserManager() {}
@@ -53,51 +51,6 @@ public class UserManager {
 
 	public void init(Context context) {
 		mContext = context;
-		mAuth = FirebaseAuth.getInstance();
-	}
-
-	public String getAccesstoken() {
-		Log.d(TAG, "@@@@@@@@@@@ firebase start @@@@@@@@@@@@");
-		mAuthListener = new FirebaseAuth.AuthStateListener() {
-			@Override
-			public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-				FirebaseUser user = firebaseAuth.getCurrentUser();
-				String accessToken = FirebaseInstanceId.getInstance().getToken();
-				if (user != null) {
-					Log.d(TAG, "onAuthStateChanged(Firebase):" + user.getUid());
-					Log.d(TAG, "token :" + accessToken);
-
-					mAccessToken = accessToken;
-				}
-			}
-		};
-		Log.d(TAG, "@@@@@@@@@@@ firebase end @@@@@@@@@@@@");
-		return mAccessToken;
-	}
-
-	public String getFid() {
-		Log.d(TAG, "@@@@@@@@@@@ firebase start @@@@@@@@@@@@");
-		mAuthListener = new FirebaseAuth.AuthStateListener() {
-			@Override
-			public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-//                if (!mFirst) {
-				FirebaseUser user = firebaseAuth.getCurrentUser();
-				String accessToken = FirebaseInstanceId.getInstance().getToken();
-				if (user != null) {
-					Log.d(TAG, "onAuthStateChanged(Firebase):" + user.getUid());
-					Log.d(TAG, "token :" + accessToken);
-
-					mFid = user.getUid();
-				} else {
-					Log.d(TAG, "onAuthStateChanged(initUserId)" + mUid);
-					mFid = null;
-				}
-//                }
-//                mFirst = false;
-			}
-		};
-		Log.d(TAG, "@@@@@@@@@@@ firebase end @@@@@@@@@@@@");
-		return mFid;
 	}
 
 	@Nullable
@@ -112,18 +65,16 @@ public class UserManager {
 				if (num != null) {
 					if (num.startsWith("+82"))
 						num = "0" + num.substring(3);
-
 					num = num.replaceAll("-", "");
 
 					if (num.startsWith("010")) {
 						mPid = "082" + num;
 					}
 
-					Log.d(TAG, "PID: " + mPid);
+					Log.d(TAG, "Phone ID: " + mPid);
 				} else {
-					// Change the virtual phone number for test
 					mPid = "08201000000000";
-					Log.d(TAG, "PID: " + mPid + " for test");
+					Log.d(TAG, "Default Phone ID: " + mPid );
 				}
 			}
 		}
@@ -133,6 +84,7 @@ public class UserManager {
 
 	@Nullable
 	public String getUid() {
+		Log.d(TAG, "Get user id method");
 		ConfigManager configManager = ConfigManager.getInstance();
 		configManager.init(mContext);
 		String aesKey = configManager.getProperty(CONFIG_KEY_AES_KEY);
@@ -140,25 +92,16 @@ public class UserManager {
 		Algorithm algorithm = new Algorithm();
 
 		try {
-			mUid = Algorithm.encrypt(getPid(), aesKey);
+			mUid = algorithm.encrypt(getPid(), aesKey);
+			Log.d(TAG, "Get user id : " + mUid);
 		} catch (Exception e) {
-			Log.d(TAG, "Get Uid error");
+			Log.d(TAG, "Get user id error");
 			e.printStackTrace();
 		}
 
 		Log.d(TAG, "Uid : " + mUid);
 
 		return mUid;
-	}
-
-	public void startListeningForAuthentication() {
-		mAuth.addAuthStateListener(mAuthListener);
-	}
-
-	public void stopListeningForAuthentication() {
-		if (mAuthListener != null) {
-			mAuth.removeAuthStateListener(mAuthListener);
-		}
 	}
 
 	private boolean isPhonePermissionGranted() {

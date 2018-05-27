@@ -8,7 +8,7 @@ import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
 public class Util {
-    private static String TAG = "[Util] ";
+    private static String TAG = "[Util] : ";
 
     // permission
     public static final int PERMISSION_ALL = 0;

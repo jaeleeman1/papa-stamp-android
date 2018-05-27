@@ -12,6 +12,7 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -31,13 +32,9 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
-import android.widget.ListView;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -45,10 +42,11 @@ import android.view.WindowManager.LayoutParams;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.GlideDrawableImageViewTarget;
+import com.subin.papastamp.common.Constants;
+import com.subin.papastamp.model.ConfigManager;
 import com.subin.papastamp.model.RecoMonitoringService;
 import com.subin.papastamp.model.http.HttpClientManager;
-import com.subin.papastamp.model.http.HttpRequestStampInfo;
-import com.subin.papastamp.model.http.HttpResponseShopInfo;
+import com.subin.papastamp.model.http.HttpRequestPushInfo;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -58,6 +56,8 @@ import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+
+import static com.subin.papastamp.common.Constants.CONFIG_KEY_API_URL;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -98,29 +98,27 @@ public class MainActivity extends AppCompatActivity {
     private LeDeviceListAdapter mLeDeviceListAdapter;
     private boolean mScanning;
     private Handler mHandler;
-    private ToggleButton stampPushButton;
-    private ToggleButton couponPushButton;
+    private ToggleButton pushButton;
     private Vibrator vide;
     private AlertDialog requestStampDialog;
     private AlertDialog requestCouponDialog;
     private WebView papastampWebView;
+    private SharedPreferences pref;
 
     // Stops scanning after 10 seconds.(스캐닝을 10초후에 자동으로 멈춥.)
     private static final long SCAN_PERIOD = 10000;
-    private Spinner stampNumberButton;
-    private ArrayAdapter spinnerAdapter;
 
     private Boolean threadFlag = true;
 
-    private static String PAPAURL = "";
+    private static String mBaseUrl = ConfigManager.getInstance().getProperty(CONFIG_KEY_API_URL);
+
+    private static String mainUrl = "";
 
     private static String shopId = "";
 
     private static String shopBeacon = "";
 
     private static String couponNumber = "";
-
-    private static String stampNumber = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,85 +131,42 @@ public class MainActivity extends AppCompatActivity {
 
         //진동
         vide = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-
+        pref = getSharedPreferences(Constants.PREFERENCE_USER, Context.MODE_PRIVATE);
         Intent pushIntent = getIntent();
         //Push Check
         String pushCheck = pushIntent.getExtras().getString("pushCheck");
         Log.d(TAG, "pushCheck: " + pushCheck);
+
         //Shop ID
         shopId = pushIntent.getExtras().getString("shopId");
         Log.d(TAG, "shopId: " + shopId);
+
         //Shop Beacon
         shopBeacon = pushIntent.getExtras().getString("shopBeacon");
         Log.d(TAG, "shopBeacon: " + shopBeacon);
-        //Shop Count
-        stampNumber = pushIntent.getExtras().getString("shopCount");
-        Log.d(TAG, "shopCount: " + stampNumber);
+
         //User ID
         String mUid = pushIntent.getExtras().getString("userId");
-        Log.d(TAG, "userId: " + pushCheck);
+        Log.d(TAG, "userId: " + mUid);
 
         String mLatitude = pushIntent.getExtras().getString("mLatitude");
         String mLongitude = pushIntent.getExtras().getString("mLongitude");
-        Log.d(TAG, "mLatitude: " + pushCheck);
-        Log.d(TAG, "mLongitude: " + pushCheck);
+        if(mLatitude == null){
+            mLatitude = "37.650804099999995";
+        }
+        if(mLongitude == null){
+            mLongitude = "126.88645269999999";
+        }
+        Log.d(TAG, "mLatitude: " + mLatitude);
+        Log.d(TAG, "mLongitude: " + mLongitude);
 
-        stampPushButton = (ToggleButton) findViewById(R.id.stampPushButton);
-        couponPushButton = (ToggleButton) findViewById(R.id.couponPushButton);
-        stampNumberButton = (Spinner)findViewById(R.id.stampNumber);
-
-        int stampNum = Integer.parseInt(stampNumber);
-
-        couponPushButton.setVisibility(View.GONE);
+        pushButton = (ToggleButton) findViewById(R.id.pushButton);
 
         if(pushCheck.equals("hide")) {
-            stampPushButton.setVisibility(View.GONE);
-            stampNumberButton.setVisibility(View.GONE);
-            PAPAURL = "https://whereareevent.com/v1/shop/main?user_id="+mUid +"&current_lat="+ mLatitude +"&current_lng=" + mLongitude;
+            mainUrl = mBaseUrl + "/shop/v1/main?user_id="+mUid +"&shop_id=&current_lat="+ mLatitude +"&current_lng=" + mLongitude;
         }else {
-            Log.d(TAG, "stampNum: " + stampNum);
-            PAPAURL = "https://whereareevent.com/v1/stamp/main?user_id="+mUid + "&shop_id="+shopId + "&current_lat=37.650804099999995&current_lng=126.88645269999999";
-            if(stampNum != 1) {
-                String[] arrayInput = new String[stampNum];
-                for(int i= 0; i<stampNum; i++){
-                    arrayInput[i] = Integer.toString(i+1);
-                }
-                spinnerAdapter = new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item, arrayInput);
-                stampNumberButton.setAdapter(spinnerAdapter);
-                stampNumber = stampNumberButton.getItemAtPosition(0).toString();
-            }else {
-                stampNumberButton.setVisibility(View.GONE);
-            }
+            mainUrl = mBaseUrl + "/stamp/v1/main?user_id="+mUid + "&shop_id="+shopId + "&current_lat=37.650804099999995&current_lng=126.88645269999999";
         }
-
-        //event listener
-        stampNumberButton.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                stampNumber = stampNumberButton.getItemAtPosition(position).toString();
-                Toast.makeText(MainActivity.this,"선택된 갯수 : "+ stampNumber, Toast.LENGTH_SHORT).show();
-            }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-
-            }
-        });
-
-        stampPushButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isStampChecked) {
-                if (isStampChecked == true){
-                    scanLeStampDevice(true);
-                    showStampDialog();
-                } else {
-                    threadFlag = true;
-                    scanLeStampDevice(false);
-                    mScanning = false;
-                    mBLEScanner.stopScan(mScanStampCallback);
-                    closeStampDialog();
-                }
-            }
-        });
 
         papastampWebView = (WebView) findViewById(R.id.webView);
         papastampWebView.setWebViewClient(new WebViewClient());
@@ -225,8 +180,7 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setUseWideViewPort(true);
 
         try {
-//            papastampWebView.loadUrl(PAPAURL+"/"+mUid);
-            papastampWebView.loadUrl(PAPAURL);
+            papastampWebView.loadUrl(mainUrl);
         }catch (Exception e){
             Log.d("Error",e.getMessage());
         }
@@ -264,15 +218,45 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @JavascriptInterface
-    public void callSettingsActivity(final String paramShopId, final String paramShopBeacon, final String paramCouponNum) {
+    public void callStampActivity(final String paramShopId,  final String paramShopBeacon) {
+        Log.i("MainActivity", paramShopId);
+        shopId = paramShopId;
+        shopBeacon = paramShopBeacon;
+        mHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                pushButton.setVisibility(View.VISIBLE);
+                pushButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton buttonView, boolean isStampChecked) {
+                        if (isStampChecked == true){
+                            scanLeStampDevice(true);
+                            showStampDialog();
+                        } else {
+                            threadFlag = true;
+                            scanLeStampDevice(false);
+                            mScanning = false;
+                            mBLEScanner.stopScan(mScanStampCallback);
+                            pushButton.setVisibility(View.GONE);
+                            closeStampDialog();
+                        }
+                    }
+                });
+                pushButton.performClick();
+            }
+        });
+    }
+
+    @JavascriptInterface
+    public void callCouponActivity(final String paramShopId, final String paramShopBeacon, final String paramCouponNum) {
         shopId = paramShopId;
         shopBeacon = paramShopBeacon;
         couponNumber = paramCouponNum;
         mHandler.post(new Runnable() {
             @Override
             public void run() {
-                couponPushButton.setVisibility(View.VISIBLE);
-                couponPushButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                pushButton.setVisibility(View.VISIBLE);
+                pushButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                     @Override
                     public void onCheckedChanged(CompoundButton buttonView, boolean isCouponChecked) {
                         if (isCouponChecked == true){
@@ -283,14 +267,28 @@ public class MainActivity extends AppCompatActivity {
                             scanLeCouponDevice(false);
                             mScanning = false;
                             mBLEScanner.stopScan(mScanCouponCallback);
-                            couponPushButton.setVisibility(View.GONE);
+                            pushButton.setVisibility(View.GONE);
                             closeCouponDialog();
                         }
                     }
                 });
-                couponPushButton.performClick();
+                pushButton.performClick();
             }
         });
+    }
+
+    @JavascriptInterface
+    public void loginActivity() {
+        SharedPreferences.Editor edit = pref.edit();
+        edit.putBoolean(Constants.PREFERENCE_USER_SKIP, true);
+        edit.commit();
+    }
+
+    @JavascriptInterface
+    public void logoutActivity() {
+        SharedPreferences.Editor edit = pref.edit();
+        edit.putBoolean(Constants.PREFERENCE_USER_SKIP, false);
+        edit.commit();
     }
 
     private void updateStamp() {
@@ -299,8 +297,8 @@ public class MainActivity extends AppCompatActivity {
         HttpClientManager httpClientManager = HttpClientManager.getInstance();
 
         httpClientManager.initHeader();
-        HttpRequestStampInfo body = new HttpRequestStampInfo(shopId, stampNumber);
-        Call<ResponseBody> call = httpClientManager.updateStamp(body);
+        HttpRequestPushInfo body = new HttpRequestPushInfo(shopId);
+        Call<ResponseBody> call = httpClientManager.requestStamp(body);
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -335,8 +333,8 @@ public class MainActivity extends AppCompatActivity {
         HttpClientManager httpClientManager = HttpClientManager.getInstance();
 
         httpClientManager.initHeader();
-        HttpRequestStampInfo body = new HttpRequestStampInfo(shopId, couponNumber);
-        Call<ResponseBody> call = httpClientManager.updateCoupon(body);
+        HttpRequestPushInfo body = new HttpRequestPushInfo(shopId, couponNumber);
+        Call<ResponseBody> call = httpClientManager.usedCoupon(body);
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
@@ -425,7 +423,7 @@ public class MainActivity extends AppCompatActivity {
 
         AlertDialog.Builder myDialogBuilder = new AlertDialog.Builder(this, R.style.stamp_dialog);
         TextView title = new TextView(this);
-        title.setText(stampNumber);
+        title.setText(R.string.dialog_title);
         title.setGravity(Gravity.CENTER);
         title.setTextColor(Color.RED);
         title.setTextSize(12);
@@ -458,23 +456,6 @@ public class MainActivity extends AppCompatActivity {
         requestCouponDialog.dismiss();
     }
 
-/*    private Button.OnClickListener pushButtonListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View view) {
-            //startLeScan(UUID[], BluetoothAdapter.LeScanCallback)
-            scanLeDevice(true);
-            pushButton.setTextColor(0xffffff);
-        }
-    };
-
-    private Button.OnClickListener stopButtonListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View view) {
-            scanLeDevice(false);
-            pushButton.setTextColor(0xFF000000);
-        }
-    };*/
-
     private void scanLeStampDevice(final boolean enable) {
         if (enable) {
             Log.i("BackMonitoringService", "블루투스 찾기 시작");
@@ -482,8 +463,8 @@ public class MainActivity extends AppCompatActivity {
             mHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    if(stampPushButton.isChecked()) {
-                        stampPushButton.performClick();
+                    if(pushButton.isChecked()) {
+                        pushButton.performClick();
                         Toast.makeText(MainActivity.this, "요청 시간이 초과되었습니다. 다시 요청하세요", Toast.LENGTH_SHORT).show();
                     }
                     mScanning = false;
@@ -509,10 +490,10 @@ public class MainActivity extends AppCompatActivity {
             mHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    if(couponPushButton.isChecked()) {
-                        couponPushButton.performClick();
+                    if(pushButton.isChecked()) {
+                        pushButton.performClick();
                         Toast.makeText(MainActivity.this, "요청 시간이 초과되었습니다. 다시 요청하세요", Toast.LENGTH_SHORT).show();
-                        couponPushButton.setVisibility(View.GONE);
+                        pushButton.setVisibility(View.GONE);
                     }
                     mScanning = false;
                     mBLEScanner.stopScan(mScanCouponCallback);
@@ -584,11 +565,14 @@ public class MainActivity extends AppCompatActivity {
     private ScanCallback mScanStampCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
-//            Log.i("BackMonitoringService", "블루투스 1개 찾음 : " + result.getRssi());
+            Log.i("BackMonitoringService", "블루투스 1개 찾음 : " + result.getRssi());
+
             String compareBeacon = result.getDevice().toString();
             String deviceName = result.getDevice().getName();
             int rssi = result.getRssi();
 
+            Log.i("BackMonitoringService", "deviceName : " + deviceName);
+            Log.i("BackMonitoringService", "compareBeacon : " + compareBeacon);
             if("RECO".equals(deviceName) && shopBeacon.equals(compareBeacon)) {
                 if(rssi > -74) {
                     if (threadFlag) {
@@ -604,10 +588,9 @@ public class MainActivity extends AppCompatActivity {
                                         try {
                                             vide.vibrate(700);
                                             updateStamp();
-                                            Toast.makeText(MainActivity.this, "스탬프 찍기 완료", Toast.LENGTH_SHORT).show();
-                                            stampPushButton.performClick();
-                                            stampPushButton.setVisibility(View.GONE);
-                                            stampNumberButton.setVisibility(View.GONE);
+                                            Toast.makeText(MainActivity.this, "스탬프 적립 요청 완료", Toast.LENGTH_LONG).show();
+                                            pushButton.performClick();
+                                            pushButton.setVisibility(View.GONE);
                                             Thread.sleep(100);
                                         } catch (InterruptedException e) {
                                             System.err.println(e.getMessage());
@@ -671,9 +654,9 @@ public class MainActivity extends AppCompatActivity {
                                         try {
                                             vide.vibrate(700);
                                             updateCoupon();
-                                            Toast.makeText(MainActivity.this, "쿠폰 사용 완료", Toast.LENGTH_SHORT).show();
-                                            couponPushButton.performClick();
-                                            couponPushButton.setVisibility(View.GONE);
+                                            Toast.makeText(MainActivity.this, "쿠폰 사용 요청 완료", Toast.LENGTH_LONG).show();
+                                            pushButton.performClick();
+                                            pushButton.setVisibility(View.GONE);
                                             Thread.sleep(100);
                                         } catch (InterruptedException e) {
                                             System.err.println(e.getMessage());

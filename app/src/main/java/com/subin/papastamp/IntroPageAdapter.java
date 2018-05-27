@@ -1,13 +1,16 @@
 package com.subin.papastamp;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Typeface;
 import android.support.v4.view.PagerAdapter;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.view.ViewGroup.LayoutParams;
 
 public class IntroPageAdapter extends PagerAdapter {
 	private final String TAG = "Papastamp " + getClass().getSimpleName();
@@ -40,14 +43,20 @@ public class IntroPageAdapter extends PagerAdapter {
 		ImageView image = (ImageView)view.findViewById(R.id.image_view);
 		TextView title = (TextView)view.findViewById(R.id.title_view);
 		TextView subtitle = (TextView)view.findViewById(R.id.subtitle_view);
+		RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) image.getLayoutParams();
+
 		if(position == 0) {
 			image.setImageResource(R.drawable.header_papastamp_icon);
-			title.setText("파파 스탬프");
-			subtitle.setText("이제 온라인으로 모든 스탬프를 관리해 보세요!");
+			title.setText("스탬프 및 쿠폰 적립");
+			subtitle.setText("이제부터 파파스탬프로 편리하게 관리해 보세요!");
 		} else {
+			title.setVisibility(View.GONE);
 			image.setImageResource(R.drawable.stamp_action);
-			title.setText("스탬프 적립");
-			subtitle.setText("매장에서 간편하게 사용해 보세요~");
+			params.width = 1000;
+			params.height = 1600;
+			params.topMargin = -100;
+			image.setLayoutParams(params);
+			subtitle.setText("예쁜 파파 도장에 터치해 보세요~");
 		}
 	}
 

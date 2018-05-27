@@ -1,6 +1,5 @@
 package com.subin.papastamp;
 
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -13,17 +12,9 @@ import android.widget.Toast;
 
 import com.subin.papastamp.common.Constants;
 import com.subin.papastamp.common.Util;
-import com.subin.papastamp.model.UserManager;
 
 public class SplashActivity extends AppCompatActivity {
     private final String TAG = "[Splash Activity] : ";
-    private Context mContext;
-    private SplashActivity mActivity;
-
-    public SplashActivity() {
-        mContext = this;
-        mActivity = this;
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,7 +28,7 @@ public class SplashActivity extends AppCompatActivity {
     }
 
     private void papastampStart() {
-        Log.d(TAG, "papastampStart() enter");
+        Log.d(TAG, "Papastamp Start()");
 
         Thread mThread = new Thread() {
             @Override
@@ -45,17 +36,18 @@ public class SplashActivity extends AppCompatActivity {
                 try {
                     sleep(1000);
                     SharedPreferences pref = getSharedPreferences(Constants.PREFERENCE_INTRO, Context.MODE_PRIVATE);
-                    Log.d(TAG, "PREFERENCE_INTRO : " + pref);
                     boolean needSkip = false;
                     if (pref != null) {
                         needSkip = pref.getBoolean(Constants.PREFERENCE_INTRO_SKIP, false);
-                        Log.d(TAG, "Intro Skip case : " + needSkip);
+                        Log.d(TAG, "Intro Preferences Check : " + needSkip);
                     }
                     Intent splashItntent;
                     if (needSkip) {
                         splashItntent = new Intent(SplashActivity.this, LoginActivity.class);
+                        Log.d(TAG, "Start Login Activity()");
                     } else {
                         splashItntent = new Intent(SplashActivity.this, IntroActivity.class);
+                        Log.d(TAG, "Start Intro Activity()");
                     }
                     startActivity(splashItntent);
                     finish();
